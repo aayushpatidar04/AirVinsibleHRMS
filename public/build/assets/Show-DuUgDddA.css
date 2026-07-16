@@ -1,0 +1,1 @@
+@media print{body>:not(#qr-print-area){display:none!important}#qr-print-area{display:block!important}}

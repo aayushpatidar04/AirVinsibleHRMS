@@ -1,0 +1,37 @@
+<script setup>
+// StatusBadge.vue
+const props = defineProps({ status: String, type: { type: String, default: 'current' } })
+
+const currentColors = {
+    new: 'bg-blue-100 text-blue-800',
+    in_progress: 'bg-yellow-100 text-yellow-800',
+    round_completed: 'bg-purple-100 text-purple-800',
+    all_rounds_cleared: 'bg-green-100 text-green-800',
+    rejected: 'bg-red-100 text-red-800',
+}
+const finalColors = {
+    pending: 'bg-gray-100 text-gray-700',
+    selected: 'bg-emerald-100 text-emerald-800',
+    not_selected: 'bg-red-100 text-red-700',
+}
+const progressColors = {
+    pending: 'bg-blue-100 text-blue-700',
+    in_progress: 'bg-yellow-100 text-yellow-800',
+    completed: 'bg-green-100 text-green-800',
+    rejected: 'bg-red-100 text-red-700',
+}
+
+const colorMap = props.type === 'final' ? finalColors : props.type === 'progress' ? progressColors : currentColors
+const label = {
+    new: 'New', in_progress: 'In Progress', round_completed: 'Round Completed',
+    all_rounds_cleared: 'All Rounds Cleared', rejected: 'Rejected',
+    pending: 'Pending', selected: 'Selected', not_selected: 'Not Selected',
+    completed: 'Completed',
+}
+</script>
+<template>
+    <span
+        :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold', colorMap[status] ?? 'bg-gray-100 text-gray-600']">
+        {{ label[status] ?? status }}
+    </span>
+</template>
