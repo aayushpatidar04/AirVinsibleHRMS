@@ -38,7 +38,7 @@ const saveResponse = async (questionId) => {
   router.post(
     route('interviewer.interviews.response.save', { candidate: props.candidate.id, round: props.interview.round_id }),
     { question_id: questionId, ...responseData.value[questionId] },
-    { preserveState: true, onFinish: () => (saving.value[questionId] = false) }
+    { preserveState: true, preserveScroll: true, onFinish: () => (saving.value[questionId] = false) }
   )
 }
 

@@ -27,6 +27,7 @@
         "@tiptap/extension-table-header": "^3.27.1",
         "@tiptap/extension-table-row": "^3.27.1",
         "@tiptap/starter-kit": "^3.27.1",
-        "@tiptap/vue-3": "^3.27.1"
+        "@tiptap/vue-3": "^3.27.1",
+        "qrcode.vue": "^3.10.0"
     }
 }
