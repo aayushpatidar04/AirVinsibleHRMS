@@ -17,6 +17,21 @@ const qForm = useForm({
     options: [],
 })
 
+const resetQuestionForm = () => {
+    qForm.reset()
+    qForm.question_type = 'short_answer'
+    qForm.is_mandatory = false
+    qForm.order = (props.questions?.length ?? 0) + 1
+    qForm.options = []
+    optionInput.value = ''
+}
+
+const openAddQuestion = () => {
+    editQ.value = null
+    resetQuestionForm()
+    showAddQ.value = true
+}
+
 const openEdit = (q) => {
     editQ.value = q
     qForm.question_text = q.question_text
@@ -24,10 +39,11 @@ const openEdit = (q) => {
     qForm.is_mandatory = q.is_mandatory
     qForm.order = q.order
     qForm.options = q.options ?? []
+    optionInput.value = ''
     showAddQ.value = true
 }
 
-const closeModal = () => { showAddQ.value = false; editQ.value = null; qForm.reset() }
+const closeModal = () => { showAddQ.value = false; editQ.value = null; resetQuestionForm() }
 
 const submitQ = () => {
     if (editQ.value) {
@@ -75,7 +91,7 @@ const removeOption = (i) => qForm.options.splice(i, 1)
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button @click="showAddQ = true" class="btn-primary text-sm">+ Add Question</button>
+                    <button @click="openAddQuestion" class="btn-primary text-sm">+ Add Question</button>
                     <Link :href="route('admin.rounds.edit', round.id)" class="btn-secondary text-sm">Edit</Link>
                     <button @click="deleteRound" class="btn-danger text-sm">Delete</button>
                 </div>
@@ -104,6 +120,9 @@ const removeOption = (i) => qForm.options.splice(i, 1)
                     <strong>📊 Salary Discussion Rules for this OPS Round:</strong><br />
                     • <strong>Advisor / Executive</strong> profiles — record a salary range in this OPS round if available.
                 </p>
+            </div>
+
+            <div class="rounded-xl border border-gray-100 bg-white overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="font-semibold text-gray-800">Questions</h2>
                     <span class="text-xs text-gray-400">{{questions.filter(q => q.is_mandatory).length}}
