@@ -1,6 +1,6 @@
 <script setup>
 // Admin/QRCodes/Index.vue
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import Pagination from '@/Components/Common/Pagination.vue'
 import { Link, router } from '@inertiajs/vue3'
 import { ref, watch } from 'vue'
@@ -19,7 +19,7 @@ const del = (qr) => { if (confirm('Delete QR code?')) router.delete(route('admin
 </script>
 
 <template>
-    <AdminLayout>
+    <AppLayout>
         <div class="space-y-5">
             <div class="flex items-center justify-between">
                 <h1 class="text-2xl font-bold text-gray-900">QR Codes</h1>
@@ -72,5 +72,5 @@ const del = (qr) => { if (confirm('Delete QR code?')) router.delete(route('admin
             </div>
             <Pagination :links="qrCodes.links" />
         </div>
-    </AdminLayout>
+    </AppLayout>
 </template>

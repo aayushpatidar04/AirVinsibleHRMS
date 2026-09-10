@@ -1,5 +1,5 @@
 <script setup>
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Common/Modal.vue'
 import { Link, useForm, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
@@ -22,7 +22,7 @@ const removeInterviewer = () => {
 </script>
 
 <template>
-    <AdminLayout>
+    <AppLayout>
         <div class="space-y-6">
             <div class="flex items-center justify-between">
                 <div>
@@ -97,5 +97,5 @@ const removeInterviewer = () => {
                 </template>
             </Modal>
         </div>
-    </AdminLayout>
+    </AppLayout>
 </template>

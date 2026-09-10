@@ -1,5 +1,5 @@
 <script setup>
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import Pagination from '@/Components/Common/Pagination.vue'
 import { Link, router } from '@inertiajs/vue3'
 import { ref, watch } from 'vue'
@@ -15,7 +15,7 @@ watch([search, status], () => {
 </script>
 
 <template>
-    <AdminLayout>
+    <AppLayout>
         <div class="space-y-5">
             <!-- Header -->
             <div class="flex items-center justify-between">
@@ -83,5 +83,5 @@ watch([search, status], () => {
             </div>
             <Pagination :links="branches.links" />
         </div>
-    </AdminLayout>
+    </AppLayout>
 </template>

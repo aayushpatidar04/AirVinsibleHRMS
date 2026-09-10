@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Mail\InterviewScheduledMail;
 use App\Models\Branch;
 use App\Models\Candidate;
+use App\Models\CandidateRoundProgress;
 use App\Models\InterviewRound;
 use App\Models\InterviewSchedule;
 use App\Models\User;
+use App\Services\CandidateScorecardService;
+use App\Services\InterviewHistoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
@@ -17,28 +20,72 @@ class CandidateController extends Controller
 {
     public function index(Request $request)
     {
-        $candidates = Candidate::with('branch', 'currentRound', 'currentInterviewer')
+        $this->authorize('viewAny', Candidate::class);
+
+        $user = $request->user();
+
+        $candidates = Candidate::query()
+            ->visibleTo($user)
+            ->with([
+                'branch',
+                'currentRound',
+                'currentInterviewer',
+            ])
+            ->when($request->search, function ($query, $search) {
+                $query->where(function ($searchQuery) use ($search) {
+                    $searchQuery
+                        ->where('first_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                });
+            })
             ->when(
-                $request->search,
-                fn($q, $s) =>
-                $q->where('first_name', 'like', "%$s%")
-                    ->orWhere('last_name', 'like', "%$s%")
-                    ->orWhere('email', 'like', "%$s%")
-                    ->orWhere('phone', 'like', "%$s%")
+                $request->branch_id,
+                fn($query, $branchId) =>
+                $query->where('branch_id', $branchId)
             )
-            ->when($request->branch_id, fn($q, $b) => $q->where('branch_id', $b))
-            ->when($request->status, fn($q, $s) => $q->where('current_status', $s))
-            ->when($request->final_status, fn($q, $s) => $q->where('final_status', $s))
-            ->when($request->profile, fn($q, $p) => $q->where('profile_category', $p))
-            ->when($request->applicant_type, fn($q, $a) => $q->where('applicant_type', $a))
+            ->when(
+                $request->status,
+                fn($query, $status) =>
+                $query->where('current_status', $status)
+            )
+            ->when(
+                $request->final_status,
+                fn($query, $status) =>
+                $query->where('final_status', $status)
+            )
+            ->when(
+                $request->profile,
+                fn($query, $profile) =>
+                $query->where('profile_category', $profile)
+            )
+            ->when(
+                $request->applicant_type,
+                fn($query, $type) =>
+                $query->where('applicant_type', $type)
+            )
             ->latest('registration_date')
             ->paginate(20)
             ->withQueryString();
 
+        $branches = $user->hasRole('admin')
+            ? Branch::active()->get(['id', 'name'])
+            : Branch::active()
+                ->whereKey($user->branch_id)
+                ->get(['id', 'name']);
+
         return Inertia::render('Admin/Candidates/Index', [
             'candidates' => $candidates,
-            'branches' => Branch::active()->get(['id', 'name']),
-            'filters' => $request->only(['search', 'branch_id', 'status', 'final_status', 'profile', 'applicant_type']),
+            'branches' => $branches,
+            'filters' => $request->only([
+                'search',
+                'branch_id',
+                'status',
+                'final_status',
+                'profile',
+                'applicant_type',
+            ]),
             'statusOptions' => Candidate::CURRENT_STATUSES,
             'finalStatusOptions' => Candidate::FINAL_STATUSES,
             'profileOptions' => Candidate::PROFILE_LABELS,
@@ -46,54 +93,40 @@ class CandidateController extends Controller
         ]);
     }
 
-    public function show(Candidate $candidate)
+    public function show(Candidate $candidate, InterviewHistoryService $historyService, CandidateScorecardService $scorecardService)
     {
-        $candidate->load('branch', 'currentRound', 'currentInterviewer', 'formSubmission.form');
+        $this->authorize('view', $candidate);
+        $candidate->load('branch', 'currentRound', 'currentInterviewer', 'formSubmission.form', 'latestOffer');
+        $scorecard = $scorecardService->forCandidate($candidate);
 
-        $progressHistory = $candidate->roundProgress()
-            ->with('round', 'interviewer', 'responses.question')
-            ->orderBy('created_at')
-            ->get()
-            ->map(fn($p) => [
-                'id' => $p->id,
-                'round_id' => $p->round_id,
-                'round_name' => $p->round->name,
-                'is_hr_round' => $p->round->is_hr_round,
-                'is_ops_round' => $p->round->is_ops_round,
-                'interviewer' => $p->interviewer->full_name,
-                'interviewer_id' => $p->interviewer_id,
-                'status' => $p->status,
-                'started_at' => $p->start_date?->format('d M Y H:i'),
-                'ended_at' => $p->end_date?->format('d M Y H:i'),
-                'duration' => $p->getDurationLabel(),
-                'rating' => $p->overall_rating,
-                'rating_stars' => $p->getRatingStars(),
-                'feedback' => $p->overall_feedback,
-                'rejection_reason' => $p->rejection_reason,
-                'salary_offer_min' => $p->salary_offer_min,
-                'salary_offer_max' => $p->salary_offer_max,
-                'offered_designation' => $p->offered_designation,
-                'salary_offer_status' => $p->salary_offer_status,
-                'responses' => $p->responses->map(fn($r) => [
-                    'question' => $r->question->question_text,
-                    'type' => $r->question->question_type,
-                    'is_mandatory' => $r->question->is_mandatory,
-                    'response_text' => $r->response_text,
-                    'rating_value' => $r->rating_value,
-                    'yes_no_value' => $r->yes_no_value,
-                    'interviewer_notes' => $r->interviewer_notes,
-                    'question_rating' => $r->question_rating,
-                ]),
-            ]);
+        $progressHistory = $historyService
+            ->forCandidate(
+                $candidate,
+                auth()->user()
+            );
 
-        $availableInterviewers = User::role('interviewer')
+        $availableInterviewers = User::query()
             ->active()
+            ->canInterview()
+            ->with([
+                'branch:id,name',
+                'allowedRounds:id',
+            ])
+            ->orderBy('first_name')
+            ->orderBy('last_name')
             ->get()
-            ->map(fn($u) => [
-                'id' => $u->id,
-                'name' => $u->full_name,
-                'emp' => $u->employee_id,
-                'can_interview_rounds' => $u->allowedRounds->pluck('id')->toArray(),
+            ->map(fn(User $user) => [
+                'id' => $user->id,
+                'name' => $user->full_name,
+                'employee_id' => $user->employee_id,
+                'designation' => $user->designation,
+                'branch_id' => $user->branch_id,
+                'branch_name' => $user->branch?->name ?? 'No Branch',
+                'can_interview_rounds' => $user->allowedRounds
+                    ->pluck('id')
+                    ->map(fn($id) => (int) $id)
+                    ->values()
+                    ->all(),
             ]);
 
         $form = $candidate->latestSubmission?->form;
@@ -184,6 +217,22 @@ class CandidateController extends Controller
             'Swiggy-PT-Voice',
         ];
 
+        $opsRecommendation = CandidateRoundProgress::query()
+            ->with('interviewer')
+            ->where('candidate_id', $candidate->id)
+            ->whereHas('round', fn ($q) => $q->where('is_ops_round', true))
+            ->where('status', 'completed')
+            ->latest('end_date')
+            ->first();
+
+        $hrDiscussion = CandidateRoundProgress::query()
+            ->with('interviewer')
+            ->where('candidate_id', $candidate->id)
+            ->whereHas('round', fn ($q) => $q->where('is_hr_round', true))
+            ->where('status', 'completed')
+            ->latest('end_date')
+            ->first();
+
         return Inertia::render('Admin/Candidates/Show', [
             'candidate' => [
                 'id' => $candidate->id,
@@ -229,6 +278,17 @@ class CandidateController extends Controller
                 'hold_reason' => $candidate->hold_reason,
                 'hold_remarks' => $candidate->hold_remarks,
                 'salary_annexure' => $candidate->salary_annexure,
+                'active_offer' => $candidate->latestOffer
+                    ? [
+                        'id' => $candidate->latestOffer->id,
+                        'offer_number' =>
+                            $candidate->latestOffer->offer_number,
+                        'status' =>
+                            $candidate->latestOffer->status,
+                        'status_label' =>
+                            $candidate->latestOffer->status_label,
+                    ]
+                    : null,
             ],
             'progress_history' => $progressHistory,
             'finalStatusOptions' => Candidate::FINAL_STATUSES,
@@ -238,11 +298,34 @@ class CandidateController extends Controller
             'rejectionReasons' => $rejectionReasons,
             'holdReasons' => $holdReasons,
             'processOptions' => $processOptions,
+            'scorecard' => $scorecard,
+            'ops_recommendation' => [
+                'salary_min' => $opsRecommendation?->salary_offer_min,
+                'salary_max' => $opsRecommendation?->salary_offer_max,
+                'designation' => $opsRecommendation?->offered_designation,
+                'feedback' => $opsRecommendation?->overall_feedback,
+                'interviewer' => $opsRecommendation?->interviewer->name,
+            ],
+
+            'hr_discussion' => [
+                'salary_min' => $hrDiscussion?->salary_offer_min,
+                'salary_max' => $hrDiscussion?->salary_offer_max,
+                'designation' => $hrDiscussion?->offered_designation,
+                'candidate_response' => $hrDiscussion?->salary_offer_status,
+                'feedback' => $hrDiscussion?->overall_feedback,
+                'interviewer' => $hrDiscussion?->interviewer->name,
+            ],
         ]);
     }
 
     public function updateApprovalStatus(Request $request, Candidate $candidate)
     {
+        if ($request->input('approval_status') === 'approved') {
+            $this->authorize('approve', $candidate);
+        } else {
+            $this->authorize('rejectApproval', $candidate);
+        }
+
         $data = $request->validate([
             'approval_status' => 'required|in:pending,approved,rejected',
             'approval_notes' => 'nullable|string|max:2000',
@@ -290,6 +373,7 @@ class CandidateController extends Controller
 
     public function updateFinalStatus(Request $request, Candidate $candidate)
     {
+        $this->authorize('finalDecision', $candidate);
         $baseRules = [
             'final_status' => 'required|in:pending,selected,not_selected',
             'hiring_notes' => 'nullable|string|max:2000',
@@ -428,12 +512,16 @@ class CandidateController extends Controller
 
     public function destroy(Candidate $candidate)
     {
+        $this->authorize('delete', $candidate);
         $candidate->delete();
-        return redirect()->route('admin.candidates.index')->with('success', 'Candidate removed.');
+        return redirect()->route('recruitment.candidates.index')->with('success', 'Candidate removed.');
     }
 
     public function scheduleInterview(Request $request, Candidate $candidate, InterviewRound $round)
     {
+        $this->authorize('view', $candidate);
+        $this->authorize('create', InterviewSchedule::class);
+
         $validated = $request->validate([
             'scheduled_at' => ['required', 'date', 'after:now'],
             'gmeet_link' => ['required', 'url', 'starts_with:https://meet.google.com/'],
@@ -476,6 +564,8 @@ class CandidateController extends Controller
 
     public function updateSchedule(Request $request, InterviewSchedule $schedule)
     {
+        $this->authorize('update', $schedule);
+
         $validated = $request->validate([
             'scheduled_at' => ['required', 'date'],
             'gmeet_link' => ['required', 'url', 'starts_with:https://meet.google.com/'],
@@ -495,15 +585,98 @@ class CandidateController extends Controller
 
     public function cancelSchedule(InterviewSchedule $schedule)
     {
+        $this->authorize('cancel', $schedule);
         $schedule->update(['status' => 'cancelled']);
         return back()->with('success', 'Interview cancelled.');
     }
 
     public function sendScheduleEmail(InterviewSchedule $schedule)
     {
+        $this->authorize('sendEmail', $schedule);
         Mail::to($schedule->candidate->email)->send(new InterviewScheduledMail($schedule));
         $schedule->update(['sent_at' => now()]);
         return back()->with('success', 'Email resent to candidate.');
+    }
+
+    public function compare(
+        Request $request,
+        CandidateScorecardService $scorecardService
+    ) {
+        $data = $request->validate([
+            'candidates' => [
+                'required',
+                'array',
+                'min:2',
+                'max:5',
+            ],
+
+            'candidates.*' => [
+                'required',
+                'integer',
+                'distinct',
+                'exists:candidates,id',
+            ],
+        ]);
+
+        $user = $request->user();
+
+        $candidates = Candidate::query()
+            ->visibleTo($user)
+            ->whereIn('id', $data['candidates'])
+            ->with([
+                'branch',
+                'currentRound',
+                'roundProgress.round',
+                'roundProgress.interviewer',
+            ])
+            ->get();
+
+        abort_unless(
+            $candidates->count() === count($data['candidates']),
+            403
+        );
+
+        $comparison = $candidates
+            ->map(function ($candidate) use ($scorecardService) {
+                return [
+                    'candidate' => [
+                        'id' => $candidate->id,
+                        'name' => $candidate->full_name,
+                        'email' => $candidate->email,
+                        'phone' => $candidate->phone,
+                        'position' => $candidate->position_applied,
+                        'profile' =>
+                            $candidate->getProfileCategoryLabel(),
+                        'branch' => $candidate->branch?->name,
+                        'current_status' =>
+                            $candidate->current_status
+                            ?? $candidate->current_status,
+                        'current_round' =>
+                            $candidate->currentRound?->name,
+                        'final_status' =>
+                            $candidate->final_status,
+                        'final_ctc' =>
+                            $candidate->final_ctc,
+                        'final_in_hand' =>
+                            $candidate->final_in_hand,
+                        'designation' =>
+                            $candidate->final_designation,
+                    ],
+
+                    'scorecard' =>
+                        $scorecardService->forCandidate(
+                            $candidate
+                        ),
+                ];
+            })
+            ->values();
+
+            return Inertia::render(
+            'Admin/Candidates/Compare',
+            [
+                'comparison' => $comparison,
+            ]
+        );
     }
 
 }

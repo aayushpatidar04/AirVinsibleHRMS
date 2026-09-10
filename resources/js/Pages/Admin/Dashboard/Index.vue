@@ -1,5 +1,5 @@
 <script setup>
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import StatCard from '@/Components/Common/StatCard.vue'
 import StatusBadge from '@/Components/Common/StatusBadge.vue'
 import { Link } from '@inertiajs/vue3'
@@ -8,7 +8,7 @@ const props = defineProps({ stats: Object })
 </script>
 
 <template>
-  <AdminLayout>
+  <AppLayout>
     <div class="space-y-6">
       <!-- Header -->
       <div class="flex items-center justify-between">
@@ -111,7 +111,7 @@ const props = defineProps({ stats: Object })
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-semibold text-gray-800">Recent Candidates</h2>
-          <Link :href="route('admin.candidates.index')" class="text-sm text-indigo-600 hover:underline">View all →
+          <Link :href="route('recruitment.candidates.index')" class="text-sm text-indigo-600 hover:underline">View all →
           </Link>
         </div>
         <div class="overflow-x-auto">
@@ -130,7 +130,7 @@ const props = defineProps({ stats: Object })
             <tbody>
               <tr v-for="c in stats.recent_candidates" :key="c.id" class="border-b border-gray-50 hover:bg-gray-50">
                 <td class="py-3">
-                  <Link :href="route('admin.candidates.show', c.id)"
+                  <Link :href="route('recruitment.candidates.show', c.id)"
                     class="font-medium text-indigo-600 hover:underline">
                     {{ c.name }}
                   </Link>
@@ -149,5 +149,5 @@ const props = defineProps({ stats: Object })
         </div>
       </div>
     </div>
-  </AdminLayout>
+  </AppLayout>
 </template>

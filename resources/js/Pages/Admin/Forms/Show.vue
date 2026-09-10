@@ -1,5 +1,5 @@
 <script setup>
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import { Link, router } from '@inertiajs/vue3'
 
 const props = defineProps({ form: Object, fields: Array, fieldTypes: Object, qrCodes: Array })
@@ -11,7 +11,7 @@ const del = () => {
 </script>
 
 <template>
-  <AdminLayout>
+  <AppLayout>
     <div class="space-y-6">
       <div class="flex items-center justify-between flex-wrap gap-3">
         <div class="flex items-center gap-3">
@@ -96,5 +96,5 @@ const del = () => {
         </div>
       </div>
     </div>
-  </AdminLayout>
+  </AppLayout>
 </template>

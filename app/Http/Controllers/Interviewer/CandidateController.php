@@ -7,6 +7,7 @@ use App\Models\Candidate;
 use App\Models\CandidateRoundProgress;
 use App\Models\InterviewSchedule;
 use App\Models\User;
+use App\Services\InterviewHistoryService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -14,35 +15,27 @@ class CandidateController extends Controller
 {
     public function index(Request $request)
     {
-        $user = auth()->user();
+        $this->authorize('viewAny', Candidate::class);
 
-        $candidateIds = CandidateRoundProgress::where('interviewer_id', $user->id)
-            ->pluck('candidate_id')
-            ->unique();
-
-        $candidates = Candidate::whereIn('id', $candidateIds)
-            ->with('branch', 'currentRound')
-            ->when(
-                $request->search,
-                fn($q, $s) =>
-                $q->where('first_name', 'like', "%$s%")
-                    ->orWhere('last_name', 'like', "%$s%")
-                    ->orWhere('email', 'like', "%$s%")
-            )
-            ->when($request->status, fn($q, $s) => $q->where('current_status', $s))
+        $candidates = Candidate::query()
+            ->assignedToInterviewer($request->user())
+            ->with([
+                'branch',
+                'currentRound',
+                'currentInterviewer',
+            ])
             ->latest('registration_date')
-            ->paginate(15)
+            ->paginate(20)
             ->withQueryString();
 
         return Inertia::render('Interviewer/Candidates/Index', [
             'candidates' => $candidates,
-            'filters' => $request->only(['search', 'status']),
-            'statusOptions' => Candidate::CURRENT_STATUSES,
         ]);
     }
 
-    public function show(Candidate $candidate)
+    public function show(Candidate $candidate, InterviewHistoryService $historyService)
     {
+        $this->authorize('viewAsInterviewer', $candidate);
         $user = auth()->user();
 
         abort_unless(
@@ -55,41 +48,11 @@ class CandidateController extends Controller
 
         $candidate->load('branch', 'currentRound', 'formSubmission');
 
-        $progressHistory = $candidate->roundProgress()
-            ->with('round', 'interviewer', 'responses.question')
-            ->orderBy('created_at')
-            ->get()
-            ->map(fn($p) => [
-                'id' => $p->id,
-                'round_id' => $p->round_id,
-                'round_name' => $p->round->name,
-                'is_hr_round' => $p->round->is_hr_round,
-                'is_ops_round' => $p->round->is_ops_round,
-                'interviewer' => $p->interviewer->full_name,
-                'is_mine' => $p->interviewer_id === $user->id,
-                'status' => $p->status,
-                'started_at' => $p->start_date?->format('d M Y H:i'),
-                'ended_at' => $p->end_date?->format('d M Y H:i'),
-                'duration' => $p->getDurationLabel(),
-                'rating' => $p->overall_rating,
-                'rating_stars' => $p->getRatingStars(),
-                'feedback' => $p->overall_feedback,
-                'rejection_reason' => $p->rejection_reason,
-                'salary_offer_min' => $p->salary_offer_min,
-                'salary_offer_max' => $p->salary_offer_max,
-                'offered_designation' => $p->offered_designation,
-                'salary_offer_status' => $p->salary_offer_status,
-                'responses' => $p->responses->map(fn($r) => [
-                    'question' => $r->question?->question_text,
-                    'type' => $r->question?->question_type,
-                    'is_mandatory' => $r->question?->is_mandatory,
-                    'response_text' => $r->response_text,
-                    'rating_value' => $r->rating_value,
-                    'yes_no_value' => $r->yes_no_value,
-                    'interviewer_notes' => $r->interviewer_notes,
-                    'question_rating' => $r->question_rating,
-                ]),
-            ]);
+        $progressHistory = $historyService
+            ->forCandidate(
+                $candidate,
+                $user
+            );
 
         // Find the current assigned progress for this interviewer
         $myProgress = $candidate->roundProgress()
@@ -98,20 +61,18 @@ class CandidateController extends Controller
             ->with('round')
             ->first();
 
-
-
         $availableInterviewers = [];
 
         if ($myProgress) {
-            $availableInterviewers = User::role('interviewer')
+            $availableInterviewers = User::query()
                 ->active()
-                // ->fromBranch($candidate->branch_id ?? 0)
+                ->canInterview()
                 ->get(['id', 'name', 'employee_id'])
+                ->filter(fn($u) => $u->canInterviewRound($myProgress->round))
                 ->map(fn($u) => [
                     'id' => $u->id,
                     'name' => $u->name,
                     'employee_id' => $u->employee_id,
-                    'can_take_round' => $u->canInterviewRound($myProgress->round),
                 ]);
         }
 

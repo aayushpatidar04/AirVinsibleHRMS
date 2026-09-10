@@ -13,7 +13,9 @@ class InterviewerController extends Controller
 {
     public function index(Request $request)
     {
-        $interviewers = User::role('interviewer')
+        $interviewers = User::query()
+            ->active()
+            ->canInterview()
             ->with('branch')
             ->withCount([
                 'interviewProgress as total_interviews',

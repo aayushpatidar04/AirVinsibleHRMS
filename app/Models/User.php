@@ -21,6 +21,8 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable, SoftDeletes, HasRoles;
 
+    protected string $guard_name = 'web';
+
     protected $fillable = [
         'name',
         'first_name',
@@ -192,8 +194,18 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function makeInterviewer(): void
     {
-        $this->assignRole('interviewer');
-        $this->update(['can_interview' => true]);
+        /*
+         * Admin and HR retain their primary role.
+         * Their interview eligibility is controlled through can_interview
+         * and allowedRounds.
+         */
+        if (!$this->hasAnyRole(['admin', 'hr'])) {
+            $this->syncRoles(['interviewer']);
+        }
+
+        $this->update([
+            'can_interview' => true,
+        ]);
     }
 
     /**
@@ -201,8 +213,15 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function removeInterviewerRole(): void
     {
-        $this->removeRole('interviewer');
-        $this->update(['can_interview' => false]);
+        if ($this->hasRole('interviewer')) {
+            $this->removeRole('interviewer');
+        }
+
+        $this->allowedRounds()->detach();
+
+        $this->update([
+            'can_interview' => false,
+        ]);
     }
 
     /**
@@ -233,5 +252,36 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isSameDesignation(string $positionApplied): bool
     {
         return strcasecmp($this->designation, $positionApplied) === 0;
+    }
+
+    public function primaryRole(): string
+    {
+        return match (true) {
+            $this->hasRole('admin') => 'admin',
+            $this->hasRole('hr') => 'hr',
+            $this->hasRole('interviewer') || $this->can_interview => 'interviewer',
+            default => 'employee',
+        };
+    }
+
+    public function canAccessBranch(?int $branchId): bool
+    {
+        if ($this->hasRole('admin')) {
+            return true;
+        }
+
+        if (!$branchId || !$this->branch_id) {
+            return false;
+        }
+
+        return (int) $this->branch_id === (int) $branchId;
+    }
+
+    public function generatedCandidateOffers(): HasMany
+    {
+        return $this->hasMany(
+            CandidateOffer::class,
+            'generated_by'
+        );
     }
 }

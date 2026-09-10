@@ -1,5 +1,5 @@
 <script setup>
-import AdminLayout from "@/Layouts/AdminLayout.vue";
+import AppLayout from "@/Layouts/AppLayout.vue";
 import { Link, router } from "@inertiajs/vue3";
 import QrcodeVue from "qrcode.vue";
 
@@ -21,7 +21,7 @@ const print = () => {
 </script>
 
 <template>
-    <AdminLayout>
+    <AppLayout>
         <div class="max-w-2xl mx-auto space-y-6">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -141,7 +141,7 @@ const print = () => {
                 </p>
             </div>
         </div>
-    </AdminLayout>
+    </AppLayout>
 </template>
 
 <style>

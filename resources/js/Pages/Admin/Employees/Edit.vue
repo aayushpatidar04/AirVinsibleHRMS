@@ -1,5 +1,5 @@
 <script setup>
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import { useForm, Link } from '@inertiajs/vue3'
 
 const props = defineProps({
@@ -44,7 +44,7 @@ const toggleRole = (r) => {
 </script>
 
 <template>
-    <AdminLayout>
+    <AppLayout>
         <div class="max-w-3xl mx-auto space-y-5">
             <div class="flex items-center gap-3">
                 <Link :href="route('admin.employees.show', employee.id)" class="text-gray-400 hover:text-gray-600">←
@@ -196,5 +196,5 @@ const toggleRole = (r) => {
                 </div>
             </form>
         </div>
-    </AdminLayout>
+    </AppLayout>
 </template>

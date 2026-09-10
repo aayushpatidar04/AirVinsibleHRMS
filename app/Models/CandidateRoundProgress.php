@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -32,6 +33,7 @@ class CandidateRoundProgress extends Model
         'salary_offer_status',
         'next_round_id',
         'next_interviewer_id',
+        'salary_discussion_notes',
     ];
 
     protected $casts = [
@@ -76,6 +78,14 @@ class CandidateRoundProgress extends Model
         return $this->hasMany(Response::class, 'progress_id');
     }
 
+    public function customQuestions(): HasMany
+    {
+        return $this->hasMany(
+            CandidateRoundCustomQuestion::class,
+            'progress_id'
+        )->orderBy('order');
+    }
+
     /* ─── Scopes ─── */
 
     public function scopePending($query)
@@ -96,6 +106,36 @@ class CandidateRoundProgress extends Model
     public function scopeRejected($query)
     {
         return $query->where('status', 'rejected');
+    }
+
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if (
+            $user->hasRole('admin')
+            || $user->can('interviews.view-all-branches')
+        ) {
+            return $query;
+        }
+
+        if (
+            $user->hasRole('hr')
+            && $user->can('interviews.view-branch')
+        ) {
+            return $query->whereHas(
+                'candidate',
+                fn(Builder $candidateQuery) =>
+                $candidateQuery->where('branch_id', $user->branch_id)
+            );
+        }
+
+        if (
+            $user->isInterviewer()
+            && $user->can('interviews.view-assigned')
+        ) {
+            return $query->where('interviewer_id', $user->id);
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     /* ─── Actions ─── */

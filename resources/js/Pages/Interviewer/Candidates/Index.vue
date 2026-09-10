@@ -1,5 +1,5 @@
 <script setup>
-import InterviewerLayout from '@/Layouts/InterviewerLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import StatusBadge       from '@/Components/Common/StatusBadge.vue'
 import Pagination        from '@/Components/Common/Pagination.vue'
 import { Link, router }  from '@inertiajs/vue3'
@@ -16,7 +16,7 @@ watch([search, status], () => {
 </script>
 
 <template>
-  <InterviewerLayout>
+  <AppLayout>
     <div class="space-y-5">
       <h1 class="text-2xl font-bold text-gray-900">My Candidates</h1>
 
@@ -62,5 +62,5 @@ watch([search, status], () => {
       </div>
       <Pagination :links="candidates.links" />
     </div>
-  </InterviewerLayout>
+  </AppLayout>
 </template>

@@ -1,5 +1,5 @@
 <script setup>
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import Pagination from '@/Components/Common/Pagination.vue'
 import Modal from '@/Components/Common/Modal.vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
@@ -57,7 +57,7 @@ const submitImport = () => {
 </script>
 
 <template>
-    <AdminLayout>
+    <AppLayout>
         <div class="space-y-5">
             <!-- Header -->
             <div class="flex items-center justify-between">
@@ -276,5 +276,5 @@ const submitImport = () => {
                 </table>
             </div>
         </div>
-    </AdminLayout>
+    </AppLayout>
 </template>

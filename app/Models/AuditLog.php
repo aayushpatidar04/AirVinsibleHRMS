@@ -21,34 +21,51 @@ class AuditLog extends Model
         'new_values',
         'ip_address',
         'user_agent',
+        'created_at',
     ];
 
     protected $casts = [
-        'old_values' => 'json',
-        'new_values' => 'json',
+        'old_values' => 'array',
+        'new_values' => 'array',
         'created_at' => 'datetime',
     ];
-
-    /* ─── Relations ─── */
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /* ─── Static helper ─── */
+    public static function record(
+        string $event,
+        Model $model,
+        array $old = [],
+        array $new = [],
+        ?int $userId = null
+    ): self {
+        return static::create([
+            'user_id' => $userId ?? Auth::id(),
 
-    public static function record(string $event, Model $model, array $old = [], array $new = []): void
-    {
-        static::create([
-            'user_id'    => Auth::id(),
-            'model_type' => get_class($model),
-            'model_id'   => $model->getKey(),
-            'event'      => $event,
+            'model_type' => $model->getMorphClass(),
+
+            'model_id' => $model->getKey(),
+
+            'event' => $event,
+
             'old_values' => $old ?: null,
+
             'new_values' => $new ?: null,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
+
+            'ip_address' =>
+                app()->runningInConsole()
+                ? null
+                : request()->ip(),
+
+            'user_agent' =>
+                app()->runningInConsole()
+                ? null
+                : request()->userAgent(),
+
+            'created_at' => now(),
         ]);
     }
 }

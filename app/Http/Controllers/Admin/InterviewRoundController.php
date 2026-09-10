@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class InterviewRoundController extends Controller
@@ -86,10 +87,12 @@ class InterviewRoundController extends Controller
             'is_custom'     => $q->is_custom,
             'order'         => $q->order,
             'options'       => $q->options,
+            'score_category'=> $q->score_category,
         ]);
 
-        $allInterviewers = User::role('interviewer')
+        $allInterviewers = User::query()
             ->active()
+            ->canInterview()
             ->with('branch')
             ->get(['id', 'first_name', 'last_name', 'employee_id', 'branch_id']);
 
@@ -117,6 +120,7 @@ class InterviewRoundController extends Controller
                 'assigned' => in_array($u->id, $allowedInterviewerIds),
             ]),
             'allowedInterviewerIds' => $allowedInterviewerIds,
+            'scoreCategories' => Question::SCORE_CATEGORIES,
         ]);
     }
 
@@ -169,6 +173,7 @@ class InterviewRoundController extends Controller
             'is_mandatory'  => 'boolean',
             'order'         => 'required|integer|min:1',
             'options'       => 'nullable|array',
+            'score_category' => ['nullable', Rule::in(array_keys(Question::SCORE_CATEGORIES))],
         ]);
 
         Question::create(array_merge($data, [
@@ -190,6 +195,7 @@ class InterviewRoundController extends Controller
             'is_mandatory'  => 'boolean',
             'order'         => 'required|integer|min:1',
             'options'       => 'nullable|array',
+            'score_category' => ['nullable', Rule::in(array_keys(Question::SCORE_CATEGORIES))],
         ]);
 
         $question->update($data);

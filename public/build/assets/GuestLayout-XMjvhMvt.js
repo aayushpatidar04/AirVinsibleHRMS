@@ -1,1 +1,0 @@
-import{I as e,P as t,S as n}from"./app-DWVnIz4i.js";var r={class:`min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8`},i={__name:`GuestLayout`,setup(i){return(i,a)=>(t(),n(`div`,r,[e(i.$slots,`default`)]))}};export{i as t};

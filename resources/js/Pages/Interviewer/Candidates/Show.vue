@@ -1,9 +1,10 @@
 <script setup>
-import InterviewerLayout from '@/Layouts/InterviewerLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import StatusBadge from '@/Components/Common/StatusBadge.vue'
 import Modal from '@/Components/Common/Modal.vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import { ref } from 'vue'
+import InterviewTimeline from '@/Components/Recruitment/InterviewTimeline.vue'
 
 const props = defineProps({ candidate: Object, progress_history: Array, my_active_progress: Object, available_interviewers: Array, schedules: Array })
 const expanded = ref(null)
@@ -23,7 +24,7 @@ const getRoundSchedule = (roundId) => {
 </script>
 
 <template>
-    <InterviewerLayout>
+    <AppLayout>
         <div class="space-y-6">
             <!-- Header -->
             <div class="flex items-center justify-between flex-wrap gap-3">
@@ -235,5 +236,5 @@ const getRoundSchedule = (roundId) => {
                 </button>
             </template>
         </Modal>
-    </InterviewerLayout>
+    </AppLayout>
 </template>

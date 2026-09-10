@@ -1,6 +1,6 @@
 <script setup>
 // This file is Interviewers/Create.vue
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import { useForm, Link } from '@inertiajs/vue3'
 
 const props = defineProps({ branches: Array })
@@ -14,7 +14,7 @@ const submit = () => form.post(route('admin.interviewers.store'))
 </script>
 
 <template>
-    <AdminLayout>
+    <AppLayout>
         <div class="max-w-2xl mx-auto space-y-5">
             <div class="flex items-center gap-3">
                 <Link :href="route('admin.interviewers.index')" class="text-gray-400 hover:text-gray-600">←</Link>
@@ -84,5 +84,5 @@ const submit = () => form.post(route('admin.interviewers.store'))
                 </div>
             </form>
         </div>
-    </AdminLayout>
+    </AppLayout>
 </template>

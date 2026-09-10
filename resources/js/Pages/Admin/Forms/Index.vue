@@ -1,5 +1,5 @@
 <script setup>
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import Pagination  from '@/Components/Common/Pagination.vue'
 import { Link, router } from '@inertiajs/vue3'
 import { ref, watch } from 'vue'
@@ -23,7 +23,7 @@ const del = (form) => {
 </script>
 
 <template>
-  <AdminLayout>
+  <AppLayout>
     <div class="space-y-5">
       <div class="flex items-center justify-between">
         <div>
@@ -89,5 +89,5 @@ const del = (form) => {
       </div>
       <Pagination :links="forms.links" />
     </div>
-  </AdminLayout>
+  </AppLayout>
 </template>

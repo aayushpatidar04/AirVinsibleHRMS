@@ -1,5 +1,5 @@
 <script setup>
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import StatusBadge from '@/Components/Common/StatusBadge.vue'
 import Modal from '@/Components/Common/Modal.vue'
 import { useForm, Link, router } from '@inertiajs/vue3'
@@ -99,7 +99,7 @@ const toggleRound = (roundId) => {
 </script>
 
 <template>
-    <AdminLayout>
+    <AppLayout>
         <div class="space-y-6">
             <!-- Header -->
             <div class="flex items-center justify-between flex-wrap gap-3">
@@ -352,5 +352,5 @@ const toggleRound = (roundId) => {
                 </button>
             </template>
         </Modal>
-    </AdminLayout>
+    </AppLayout>
 </template>

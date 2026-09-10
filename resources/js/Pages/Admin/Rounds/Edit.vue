@@ -1,5 +1,5 @@
 <script setup>
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import { useForm, Link } from '@inertiajs/vue3'
 
 const props = defineProps({ round: Object })
@@ -18,7 +18,7 @@ const submit = () => form.put(route('admin.rounds.update', props.round.id))
 </script>
 
 <template>
-    <AdminLayout>
+    <AppLayout>
         <div class="max-w-xl mx-auto space-y-5">
             <div class="flex items-center gap-3">
                 <Link :href="route('admin.rounds.show', round.id)" class="text-gray-400 hover:text-gray-600">←</Link>
@@ -74,5 +74,5 @@ const submit = () => form.put(route('admin.rounds.update', props.round.id))
                 </div>
             </form>
         </div>
-    </AdminLayout>
+    </AppLayout>
 </template>

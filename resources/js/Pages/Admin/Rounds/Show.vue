@@ -1,10 +1,10 @@
 <script setup>
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import Modal from '@/Components/Common/Modal.vue'
 import { useForm, Link, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 
-const props = defineProps({ round: Object, questions: Array, questionTypes: Object })
+const props = defineProps({ round: Object, questions: Array, questionTypes: Object, scoreCategories: Object })
 
 const showAddQ = ref(false)
 const editQ = ref(null)
@@ -12,6 +12,7 @@ const editQ = ref(null)
 const qForm = useForm({
     question_text: '',
     question_type: 'short_answer',
+    score_category: '',
     is_mandatory: false,
     order: (props.questions?.length ?? 0) + 1,
     options: [],
@@ -20,6 +21,7 @@ const qForm = useForm({
 const resetQuestionForm = () => {
     qForm.reset()
     qForm.question_type = 'short_answer'
+    qForm.score_category = '',
     qForm.is_mandatory = false
     qForm.order = (props.questions?.length ?? 0) + 1
     qForm.options = []
@@ -36,6 +38,7 @@ const openEdit = (q) => {
     editQ.value = q
     qForm.question_text = q.question_text
     qForm.question_type = q.question_type
+    qForm.score_category = q.score_category
     qForm.is_mandatory = q.is_mandatory
     qForm.order = q.order
     qForm.options = q.options ?? []
@@ -70,7 +73,7 @@ const removeOption = (i) => qForm.options.splice(i, 1)
 </script>
 
 <template>
-    <AdminLayout>
+    <AppLayout>
         <div class="space-y-6">
             <!-- Header -->
             <div class="flex items-center justify-between">
@@ -194,6 +197,41 @@ const removeOption = (i) => qForm.options.splice(i, 1)
                     </div>
                 </div>
 
+                <div>
+                    <label class="label">
+                        Score Category
+                    </label>
+
+                    <select
+                        v-model="qForm.score_category"
+                        class="input-field"
+                    >
+                        <option value="">
+                            Not included in scorecard
+                        </option>
+
+                        <option
+                            v-for="(label, key) in scoreCategories"
+                            :key="key"
+                            :value="key"
+                        >
+                            {{ label }}
+                        </option>
+                    </select>
+
+                    <p
+                        v-if="qForm.errors.score_category"
+                        class="error"
+                    >
+                        {{ qForm.errors.score_category }}
+                    </p>
+
+                    <p class="mt-1 text-xs text-gray-400">
+                        Select a category only when this question should
+                        contribute to the candidate scorecard.
+                    </p>
+                </div>
+
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input v-model="qForm.is_mandatory" type="checkbox" class="rounded text-red-500" />
                     <span class="text-sm text-gray-700">This question is mandatory (must be answered to close the
@@ -207,5 +245,5 @@ const removeOption = (i) => qForm.options.splice(i, 1)
                 </button>
             </template>
         </Modal>
-    </AdminLayout>
+    </AppLayout>
 </template>

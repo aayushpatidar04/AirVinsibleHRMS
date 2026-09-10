@@ -1,13 +1,13 @@
 <script setup>
 // Rounds/Index.vue
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import { Link } from '@inertiajs/vue3'
 
 defineProps({ rounds: Array })
 </script>
 
 <template>
-    <AdminLayout>
+    <AppLayout>
         <div class="space-y-5">
             <div class="flex items-center justify-between">
                 <h1 class="text-2xl font-bold text-gray-900">Interview Rounds</h1>
@@ -56,5 +56,5 @@ defineProps({ rounds: Array })
                 <p v-if="!rounds?.length" class="text-center text-gray-400 py-10">No rounds created yet.</p>
             </div>
         </div>
-    </AdminLayout>
+    </AppLayout>
 </template>

@@ -12,10 +12,14 @@ use App\Http\Controllers\Admin\InterviewRoundController;
 use App\Http\Controllers\Admin\FormController;
 use App\Http\Controllers\Admin\QRCodeController;
 use App\Http\Controllers\Admin\CandidateController as AdminCandidateController;
+use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Candidate\RegistrationController;
+use App\Http\Controllers\HR\DashboardController as HrDashboard;
 use App\Http\Controllers\Interviewer\DashboardController as InterviewerDashboard;
 use App\Http\Controllers\Interviewer\CandidateController as InterviewerCandidateController;
 use App\Http\Controllers\Interviewer\InterviewController;
-use App\Http\Controllers\Candidate\RegistrationController;
+use App\Http\Controllers\Recruitment\CandidateOfferController;
+use App\Http\Controllers\Recruitment\CandidateOfferPortalController;
 
 /*
 |--------------------------------------------------------------------------
@@ -48,12 +52,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Dashboard redirect based on role
     Route::get('/dashboard', function () {
-        $user = auth()->user();
-        if ($user->hasRole('admin'))
-            return redirect()->route('admin.dashboard');
-        if ($user->hasRole('interviewer') || $user->can_interview)
-            return redirect()->route('interviewer.dashboard');
-        return redirect()->route('profile.edit');
+        $user = request()->user();
+
+        return match ($user->primaryRole()) {
+            'admin' => redirect()->route('admin.dashboard'),
+            'hr' => redirect()->route('hr.dashboard'),
+            'interviewer' => redirect()->route('interviewer.dashboard'),
+            default => redirect()->route('profile.edit'),
+        };
     })->name('dashboard');
 
     /*
@@ -117,24 +123,237 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/qrcodes/{qrcode}/toggle', [QRCodeController::class, 'toggle'])
                 ->name('qrcodes.toggle');
 
-            // Candidates
-            Route::get('/candidates', [AdminCandidateController::class, 'index'])->name('candidates.index');
-            Route::get('/candidates/{candidate}', [AdminCandidateController::class, 'show'])->name('candidates.show');
-            Route::put('/candidates/{candidate}/approval', [AdminCandidateController::class, 'updateApprovalStatus'])->name('candidates.update-approval');
-            Route::put('/candidates/{candidate}/status', [AdminCandidateController::class, 'updateFinalStatus'])->name('candidates.update-status');
-            Route::delete('/candidates/{candidate}', [AdminCandidateController::class, 'destroy'])->name('candidates.destroy');
+            Route::get('/roles', [RoleController::class, 'index'])
+                ->middleware('permission:roles.view')
+                ->name('roles.index');
 
-            Route::post('/candidates/{candidate}/rounds/{round}/schedule', [AdminCandidateController::class, 'scheduleInterview'])
+            Route::get('/roles/create', [RoleController::class, 'create'])
+                ->middleware('permission:roles.create')
+                ->name('roles.create');
+
+            Route::post('/roles', [RoleController::class, 'store'])
+                ->middleware('permission:roles.create')
+                ->name('roles.store');
+
+            Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])
+                ->middleware('permission:roles.update')
+                ->name('roles.edit');
+
+            Route::put('/roles/{role}', [RoleController::class, 'update'])
+                ->middleware('permission:roles.update')
+                ->name('roles.update');
+
+            Route::delete('/roles/{role}', [RoleController::class, 'destroy'])
+                ->middleware('permission:roles.delete')
+                ->name('roles.destroy');
+
+        });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Recruitment Operations
+    |--------------------------------------------------------------------------
+    |
+    | These routes are shared by Admin and HR.
+    | Policies enforce company-wide versus branch-level access.
+    |
+    */
+
+    Route::prefix('recruitment')
+        ->name('recruitment.')
+        ->group(function () {
+            Route::get(
+                '/candidates',
+                [AdminCandidateController::class, 'index']
+            )
+                ->middleware('permission:candidates.view')
+                ->name('candidates.index');
+
+            Route::get(
+                '/candidates/compare',
+                [AdminCandidateController::class, 'compare']
+            )->name('candidates.compare');
+
+            Route::get(
+                '/candidates/{candidate}',
+                [AdminCandidateController::class, 'show']
+            )
+                ->middleware('permission:candidates.view')
+                ->name('candidates.show');
+
+            Route::put(
+                '/candidates/{candidate}/approval',
+                [AdminCandidateController::class, 'updateApprovalStatus']
+            )
+                ->middleware(
+                    'permission:candidates.approve|candidates.reject-approval'
+                )
+                ->name('candidates.update-approval');
+
+            Route::put(
+                '/candidates/{candidate}/status',
+                [AdminCandidateController::class, 'updateFinalStatus']
+            )
+                ->middleware('permission:candidates.final-decision')
+                ->name('candidates.update-status');
+
+            Route::delete(
+                '/candidates/{candidate}',
+                [AdminCandidateController::class, 'destroy']
+            )
+                ->middleware('permission:candidates.delete')
+                ->name('candidates.destroy');
+
+            Route::post(
+                '/candidates/{candidate}/rounds/{round}/schedule',
+                [AdminCandidateController::class, 'scheduleInterview']
+            )
+                ->middleware('permission:interviews.schedule')
                 ->name('candidates.rounds.schedule');
 
-            Route::put('/interview-schedules/{schedule}', [AdminCandidateController::class, 'updateSchedule'])
+            Route::put(
+                '/interview-schedules/{schedule}',
+                [AdminCandidateController::class, 'updateSchedule']
+            )
+                ->middleware('permission:interviews.reschedule')
                 ->name('interview-schedules.update');
 
-            Route::delete('/interview-schedules/{schedule}', [AdminCandidateController::class, 'cancelSchedule'])
+            Route::delete(
+                '/interview-schedules/{schedule}',
+                [AdminCandidateController::class, 'cancelSchedule']
+            )
+                ->middleware('permission:interviews.cancel')
                 ->name('interview-schedules.cancel');
 
-            Route::post('/interview-schedules/{schedule}/send-email', [AdminCandidateController::class, 'sendScheduleEmail'])
+            Route::post(
+                '/interview-schedules/{schedule}/send-email',
+                [AdminCandidateController::class, 'sendScheduleEmail']
+            )
+                ->middleware('permission:interviews.send-email')
                 ->name('interview-schedules.send-email');
+
+            Route::get(
+                '/offers',
+                [CandidateOfferController::class, 'index']
+            )->name('offers.index');
+
+            /*
+            |--------------------------------------------------------------------------
+            | Create Offer for Candidate
+            |--------------------------------------------------------------------------
+            */
+
+            Route::get(
+                '/candidates/{candidate}/offers/create',
+                [CandidateOfferController::class, 'create']
+            )->name('candidates.offers.create');
+
+            Route::post(
+                '/candidates/{candidate}/offers',
+                [CandidateOfferController::class, 'store']
+            )->name('candidates.offers.store');
+
+            /*
+            |--------------------------------------------------------------------------
+            | Offer Detail and Editing
+            |--------------------------------------------------------------------------
+            */
+
+            Route::get(
+                '/offers/{candidateOffer}',
+                [CandidateOfferController::class, 'show']
+            )->name('offers.show');
+
+            Route::get(
+                '/offers/{candidateOffer}/edit',
+                [CandidateOfferController::class, 'edit']
+            )->name('offers.edit');
+
+            Route::put(
+                '/offers/{candidateOffer}',
+                [CandidateOfferController::class, 'update']
+            )->name('offers.update');
+
+            /*
+            |--------------------------------------------------------------------------
+            | Offer Lifecycle
+            |--------------------------------------------------------------------------
+            */
+
+            Route::post(
+                '/offers/{candidateOffer}/submit-for-approval',
+                [
+                    CandidateOfferController::class,
+                    'submitForApproval',
+                ]
+            )->name('offers.submit-for-approval');
+
+            Route::post(
+                '/offers/{candidateOffer}/approve',
+                [
+                    CandidateOfferController::class,
+                    'approve',
+                ]
+            )->name('offers.approve');
+
+            Route::get(
+                '/offers/{candidateOffer}/revisions/create',
+                [
+                    CandidateOfferController::class,
+                    'createRevisionForm',
+                ]
+            )->name(
+                'offers.revisions.create'
+            );
+
+            Route::post(
+                '/offers/{candidateOffer}/revisions',
+                [
+                    CandidateOfferController::class,
+                    'createRevision',
+                ]
+            )->name('offers.revisions.store');
+
+            Route::post(
+                '/offers/{candidateOffer}/cancel',
+                [
+                    CandidateOfferController::class,
+                    'cancel',
+                ]
+            )->name('offers.cancel');
+
+            Route::delete(
+                '/offers/{candidateOffer}',
+                [
+                    CandidateOfferController::class,
+                    'destroy',
+                ]
+            )->name('offers.destroy');
+
+            Route::post(
+                'offers/{candidateOffer}/generate-pdf',
+                [CandidateOfferController::class, 'generatePdf']
+            )->name('offers.generate-pdf');
+
+            Route::get(
+                'offers/{candidateOffer}/download-pdf',
+                [CandidateOfferController::class, 'downloadPdf']
+            )->name('offers.download-pdf');
+
+            Route::get(
+                'offers/{candidateOffer}/send',
+                [CandidateOfferController::class, 'createSend']
+            )->name('offers.send.create');
+
+            Route::post(
+                'offers/{candidateOffer}/send',
+                [CandidateOfferController::class, 'send']
+            )->name('offers.send');
+
+            Route::post(
+                'offers/{candidateOffer}/cancel',
+                [CandidateOfferController::class, 'cancel']
+            )->name('offers.cancel');
         });
 
     /*
@@ -142,58 +361,106 @@ Route::middleware(['auth', 'verified'])->group(function () {
     | Interviewer Routes
     |----------------------------------------------------------------------
     */
-    Route::middleware('role:interviewer,admin')
-        ->prefix('interviewer')
+    Route::prefix('interviewer')
         ->name('interviewer.')
+        ->middleware('permission:interviews.view-assigned')
         ->group(function () {
+            Route::get(
+                '/dashboard',
+                [InterviewerDashboard::class, 'index']
+            )->name('dashboard');
 
-            // Dashboard
-            Route::get('/dashboard', [InterviewerDashboard::class, 'index'])->name('dashboard');
+            Route::get(
+                '/candidates',
+                [InterviewerCandidateController::class, 'index']
+            )
+                ->middleware('permission:candidates.view')
+                ->name('candidates.index');
 
-            // My candidates
-            Route::get('/candidates', [InterviewerCandidateController::class, 'index'])->name('candidates.index');
-            Route::get('/candidates/{candidate}', [InterviewerCandidateController::class, 'show'])->name('candidates.show');
+            Route::get(
+                '/candidates/{candidate}',
+                [InterviewerCandidateController::class, 'show']
+            )
+                ->middleware('permission:candidates.view')
+                ->name('candidates.show');
 
-            // Interview actions
             Route::get(
                 '/candidates/{candidate}/rounds/{round}',
                 [InterviewController::class, 'show']
-            )->name('interviews.show');
+            )
+                ->middleware('permission:interviews.view-assigned')
+                ->name('interviews.show');
 
             Route::post(
                 '/candidates/{candidate}/rounds/{round}/start',
                 [InterviewController::class, 'start']
-            )->name('interviews.start');
+            )
+                ->middleware('permission:interviews.start')
+                ->name('interviews.start');
 
             Route::post(
                 '/candidates/{candidate}/rounds/{round}/response',
                 [InterviewController::class, 'saveResponse']
-            )->name('interviews.response.save');
+            )
+                ->middleware('permission:interviews.save-response')
+                ->name('interviews.response.save');
 
             Route::post(
                 '/candidates/{candidate}/rounds/{round}/complete',
                 [InterviewController::class, 'complete']
-            )->name('interviews.complete');
+            )
+                ->middleware('permission:interviews.complete')
+                ->name('interviews.complete');
 
             Route::post(
                 '/candidates/{candidate}/rounds/{round}/reassign',
                 [InterviewController::class, 'reassign']
-            )->name('interviews.reassign');
+            )
+                ->middleware('permission:interviews.reassign-interviewer')
+                ->name('interviews.reassign');
 
             Route::post(
                 '/candidates/{candidate}/rounds/{round}/reject',
                 [InterviewController::class, 'reject']
-            )->name('interviews.reject');
+            )
+                ->middleware('permission:interviews.reject-candidate')
+                ->name('interviews.reject');
 
             Route::post(
                 '/candidates/{candidate}/rounds/{round}/add-question',
                 [InterviewController::class, 'addCustomQuestion']
-            )->name('interviews.add-question');
+            )
+                ->middleware('permission:interviews.add-custom-question')
+                ->name('interviews.add-question');
 
             Route::get(
                 '/candidates/{candidate}/rounds/{round}/interviewers',
                 [InterviewController::class, 'getInterviewers']
-            )->name('interviews.get-interviewers');
+            )
+                ->middleware('permission:interviews.recommend-next-round')
+                ->name('interviews.get-interviewers');
+
+            Route::delete(
+                '/candidates/{candidate}/rounds/{round}/custom-questions/{customQuestion}',
+                [InterviewController::class, 'deleteCustomQuestion']
+            )
+                ->middleware(
+                    'permission:interviews.add-custom-question'
+                )
+                ->name(
+                    'interviews.custom-questions.destroy'
+                );
+
+        });
+
+    Route::prefix('hr')
+        ->name('hr.')
+        ->middleware('permission:dashboard.hr.view')
+        ->group(function () {
+            Route::get(
+                '/dashboard',
+                [HrDashboard::class, 'index']
+            )->name('dashboard');
         });
 
     /*
@@ -207,3 +474,42 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/profile/password', [\App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('password.update');
 
 });
+
+Route::prefix('candidate-offer')
+    ->name('candidate-offers.portal.')
+    ->middleware([
+        'throttle:offer-portal',
+    ])
+    ->group(function () {
+        Route::get(
+            '{token}',
+            [
+                CandidateOfferPortalController::class,
+                'show',
+            ]
+        )->name('show');
+
+        Route::get(
+            '{token}/pdf',
+            [
+                CandidateOfferPortalController::class,
+                'downloadPdf',
+            ]
+        )->name('download-pdf');
+
+        Route::post(
+            '{token}/accept',
+            [
+                CandidateOfferPortalController::class,
+                'accept',
+            ]
+        )->name('accept');
+
+        Route::post(
+            '{token}/decline',
+            [
+                CandidateOfferPortalController::class,
+                'decline',
+            ]
+        )->name('decline');
+    });

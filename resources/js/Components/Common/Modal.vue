@@ -2,6 +2,7 @@
 defineProps({
     show: Boolean,
     title: String,
+    subtitle: String,
     maxWidth: { type: String, default: 'lg' }
 })
 defineEmits(['close'])
@@ -30,7 +31,10 @@ const sizes = {
                 ]">
                     <!-- Header -->
                     <div class="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b">
-                        <h3 class="text-lg font-semibold text-gray-900">{{ title }}</h3>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">{{ title }}</h3>
+                            <small style="font-size: 0.65rem;">{{ subtitle }}</small>
+                        </div>
                         <button @click="$emit('close')"
                             class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
                     </div>

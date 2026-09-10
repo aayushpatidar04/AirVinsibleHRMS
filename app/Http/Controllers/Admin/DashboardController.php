@@ -24,7 +24,6 @@ class DashboardController extends Controller
         $byStatus = [
             'new'                => Candidate::where('current_status', 'new')->count(),
             'in_progress'        => Candidate::where('current_status', 'in_progress')->count(),
-            'round_completed'    => Candidate::where('current_status', 'round_completed')->count(),
             'all_rounds_cleared' => Candidate::where('current_status', 'all_rounds_cleared')->count(),
             'rejected'           => Candidate::where('current_status', 'rejected')->count(),
         ];
@@ -35,7 +34,7 @@ class DashboardController extends Controller
         return [
             'total_candidates'   => $total,
             'total_branches'     => Branch::count(),
-            'total_interviewers' => User::role('interviewer')->count(),
+            'total_interviewers' => User::query()->active()->canInterview()->count(),
             'pending_interviews' => CandidateRoundProgress::where('status', 'pending')->count(),
             'selected_candidates'=> $selected,
             'selection_rate'     => $total > 0 ? round($selected / $total * 100, 1) : 0,

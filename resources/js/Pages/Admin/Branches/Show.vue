@@ -1,5 +1,5 @@
 <script setup>
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import StatusBadge from '@/Components/Common/StatusBadge.vue'
 import { Link, router } from '@inertiajs/vue3'
 
@@ -12,7 +12,7 @@ const deleteBranch = () => {
 </script>
 
 <template>
-    <AdminLayout>
+    <AppLayout>
         <div class="space-y-6">
             <!-- Header -->
             <div class="flex items-center justify-between">
@@ -110,14 +110,14 @@ const deleteBranch = () => {
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-base font-semibold text-gray-800">Recent Candidates</h2>
-                    <Link :href="route('admin.candidates.index', { branch_id: branch.id })"
+                    <Link :href="route('recruitment.candidates.index', { branch_id: branch.id })"
                         class="text-xs text-indigo-600 hover:underline">View all →</Link>
                 </div>
                 <div class="space-y-2">
                     <div v-for="c in recent_candidates" :key="c.id"
                         class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
                         <div>
-                            <Link :href="route('admin.candidates.show', c.id)"
+                            <Link :href="route('recruitment.candidates.show', c.id)"
                                 class="text-sm font-medium text-indigo-600 hover:underline">{{ c.name }}</Link>
                             <p class="text-xs text-gray-400">{{ c.position }} · {{ c.profile }}</p>
                         </div>
@@ -128,5 +128,5 @@ const deleteBranch = () => {
                 </div>
             </div>
         </div>
-    </AdminLayout>
+    </AppLayout>
 </template>

@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Candidate extends Model
@@ -112,6 +114,16 @@ class Candidate extends Model
         );
     }
 
+    public function auditLogs(): MorphMany
+    {
+        return $this->morphMany(
+            AuditLog::class,
+            'model',
+            'model_type',
+            'model_id'
+        )->latest('created_at');
+    }
+
     /* ─── Relations ─── */
 
     public function branch(): BelongsTo
@@ -163,6 +175,24 @@ class Candidate extends Model
         return $this->submissions()->first();
     }
 
+    public function activeOffer(){
+        return $this->belongsTo(CandidateOffer::class);
+    }
+
+    public function offers(): HasMany
+    {
+        return $this->hasMany(
+            CandidateOffer::class,
+            'candidate_id'
+        );
+    }
+
+    public function latestOffer(): HasOne
+    {
+        return $this->hasOne(CandidateOffer::class)
+            ->latestOfMany('version');
+    }
+
     /* ─── Scopes ─── */
 
     public function scopeByStatus($query, string $status)
@@ -209,6 +239,52 @@ class Candidate extends Model
     {
         return $query->where('applicant_type', 'Rejoining')
             ->where('approval_status', 'pending');
+    }
+
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {   
+        if (
+            $user->hasRole('admin')
+            || $user->can('candidates.view-all-branches')
+        ) {
+            return $query;
+        }
+
+        if (
+            $user->hasRole('hr')
+            && $user->can('candidates.view-branch')
+        ) {
+            return $query->where('branch_id', $user->branch_id);
+        }
+
+        if (
+            $user->isInterviewer()
+            && $user->can('interviews.view-assigned')
+        ) {
+            return $query->where(function (Builder $candidateQuery) use ($user) {
+                $candidateQuery
+                    ->where('current_interviewer_id', $user->id)
+                    ->orWhereHas(
+                        'roundProgress',
+                        fn(Builder $progressQuery) =>
+                        $progressQuery->where('interviewer_id', $user->id)
+                    );
+            });
+        }
+
+        return $query->whereRaw('1 = 0');
+    }
+
+    public function scopeAssignedToInterviewer(
+        Builder $query,
+        User $user
+    ): Builder {
+        return $query->where(function (Builder $query) use ($user) {
+            $query
+                ->whereHas('roundProgress', function (Builder $progressQuery) use ($user) {
+                    $progressQuery->where('interviewer_id', $user->id);
+                });
+        });
     }
 
     /* ─── Business Logic ─── */

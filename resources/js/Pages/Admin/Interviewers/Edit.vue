@@ -1,6 +1,6 @@
 <script setup>
 // Interviewers/Edit.vue
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import { useForm, Link } from '@inertiajs/vue3'
 
 const props = defineProps({ interviewer: Object, branches: Array })
@@ -19,7 +19,7 @@ const submit = () => form.put(route('admin.interviewers.update', props.interview
 </script>
 
 <template>
-    <AdminLayout>
+    <AppLayout>
         <div class="max-w-2xl mx-auto space-y-5">
             <div class="flex items-center gap-3">
                 <Link :href="route('admin.interviewers.show', interviewer.id)"
@@ -77,5 +77,5 @@ const submit = () => form.put(route('admin.interviewers.update', props.interview
                 </div>
             </form>
         </div>
-    </AdminLayout>
+    </AppLayout>
 </template>

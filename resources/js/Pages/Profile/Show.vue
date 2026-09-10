@@ -1,13 +1,12 @@
 <script setup>
-import AdminLayout from '@/Layouts/AdminLayout.vue'
-import InterviewerLayout from '@/Layouts/InterviewerLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import { usePage, Head } from '@inertiajs/vue3'
 import { computed } from 'vue'
 
 const page = usePage()
 const userProp = defineProps({ user: Object, branch: Object })
 const isAdmin = computed(() => page.props.auth?.roles?.includes('admin'))
-const Layout = computed(() => isAdmin.value ? AdminLayout : InterviewerLayout)
+const Layout = computed(() => isAdmin.value ? AppLayout : AppLayout)
 </script>
 
 <template>

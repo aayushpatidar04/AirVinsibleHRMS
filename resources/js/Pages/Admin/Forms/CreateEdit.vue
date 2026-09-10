@@ -1,5 +1,5 @@
 <script setup>
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import { useForm, Link } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 
@@ -325,7 +325,7 @@ const isReservedName = (name) => {
 </script>
 
 <template>
-  <AdminLayout>
+  <AppLayout>
     <div class="max-w-4xl mx-auto space-y-5">
       <div class="flex items-center gap-3">
         <Link :href="isEdit ? route('admin.forms.show', form.id) : route('admin.forms.index')"
@@ -674,5 +674,5 @@ const isReservedName = (name) => {
         </div>
       </form>
     </div>
-  </AdminLayout>
+  </AppLayout>
 </template>

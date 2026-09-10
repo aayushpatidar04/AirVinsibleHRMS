@@ -13,21 +13,23 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Roles
-        $this->createRoles();
+        // 1. Roles and permissions
+        $this->call(RolePermissionSeeder::class);
 
         // 2. Branches
         $branches = $this->createBranches();
 
         // 3. Admin user
         $admin = $this->createAdmin();
+
+        $hr = $this->createHr($branches[0]);
 
         // 4. Interviewers
         $interviewers = $this->createInterviewers($branches);
@@ -45,14 +47,6 @@ class DatabaseSeeder extends Seeder
         $this->createSampleCandidates($branches[0], $rounds, $interviewers);
 
         $this->command->info('✅ Database seeded successfully.');
-    }
-
-    private function createRoles(): void
-    {
-        foreach (['admin', 'interviewer'] as $role) {
-            Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
-        }
-        $this->command->info('Roles created.');
     }
 
     private function createBranches(): array
@@ -306,5 +300,38 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->command->info(count($sampleCandidates) . ' sample candidates created.');
+    }
+
+    private function createHr(Branch $branch): User
+    {
+        $hr = User::updateOrCreate(
+            ['email' => 'hr@hrms.com'],
+            [
+                'first_name' => 'HR',
+                'last_name' => 'Manager',
+                'phone' => '9000000001',
+                'employee_id' => 'HR001',
+                'designation' => 'HR Manager',
+                'department' => 'Human Resources',
+                'branch_id' => $branch->id,
+                'password' => Hash::make('password'),
+                'employment_type' => 'full_time',
+                'employment_status' => 'active',
+                'date_of_joining' => now()->subYear()->format('Y-m-d'),
+                'is_active' => true,
+                'can_interview' => true,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        /*
+        * HR remains the user's primary operational role.
+        * The can_interview flag allows the HR user to be allocated interview rounds.
+        */
+        $hr->syncRoles(['hr']);
+
+        $this->command->info('HR created: hr@hrms.com / password');
+
+        return $hr;
     }
 }

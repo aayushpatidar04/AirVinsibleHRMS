@@ -16,6 +16,7 @@ class Question extends Model
         'round_id',
         'question_text',
         'question_type',
+        'score_category',
         'is_mandatory',
         'is_custom',
         'order',
@@ -28,6 +29,16 @@ class Question extends Model
         'is_custom'    => 'boolean',
         'options'      => 'json',
         'deleted_at'   => 'datetime',
+    ];
+
+    public const SCORE_CATEGORIES = [
+        'technical' => 'Technical Skills',
+        'communication' => 'Communication',
+        'problem_solving' => 'Problem Solving',
+        'confidence' => 'Confidence',
+        'culture_fit' => 'Culture Fit',
+        'experience' => 'Experience',
+        'leadership' => 'Leadership',
     ];
 
     /* ─── Relations ─── */
@@ -62,5 +73,15 @@ class Question extends Model
     public function scopeOrdered($query)
     {
         return $query->orderBy('order');
+    }
+
+    public function getScoreCategoryLabelAttribute(): ?string
+    {
+        if (!$this->score_category) {
+            return null;
+        }
+
+        return self::SCORE_CATEGORIES[$this->score_category]
+            ?? ucwords(str_replace('_', ' ', $this->score_category));
     }
 }

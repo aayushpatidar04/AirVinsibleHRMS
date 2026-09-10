@@ -1,5 +1,5 @@
 <script setup>
-import InterviewerLayout from '@/Layouts/InterviewerLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import StatusBadge from '@/Components/Common/StatusBadge.vue'
 import StatCard from '@/Components/Common/StatCard.vue'
 import { Link } from '@inertiajs/vue3'
@@ -8,7 +8,7 @@ defineProps({ stats: Object, pending_interviews: Array, active_interviews: Array
 </script>
 
 <template>
-    <InterviewerLayout>
+    <AppLayout>
         <div class="space-y-6">
             <h1 class="text-2xl font-bold text-gray-900">My Dashboard</h1>
 
@@ -76,5 +76,5 @@ defineProps({ stats: Object, pending_interviews: Array, active_interviews: Array
                 </div>
             </div>
         </div>
-    </InterviewerLayout>
+    </AppLayout>
 </template>

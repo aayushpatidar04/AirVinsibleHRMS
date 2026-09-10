@@ -1,5 +1,5 @@
 <script setup>
-import AdminLayout from '@/Layouts/AdminLayout.vue'
+import AppLayout from '@/Layouts/AppLayout.vue'
 import { useForm, Link } from '@inertiajs/vue3'
 
 const props = defineProps({ branch: Object })
@@ -21,7 +21,7 @@ const submit = () => form.put(route('admin.branches.update', props.branch.id))
 </script>
 
 <template>
-    <AdminLayout>
+    <AppLayout>
         <div class="max-w-2xl mx-auto space-y-5">
             <div class="flex items-center gap-3">
                 <Link :href="route('admin.branches.show', branch.id)" class="text-gray-400 hover:text-gray-600">←</Link>
@@ -96,5 +96,5 @@ const submit = () => form.put(route('admin.branches.update', props.branch.id))
                 </div>
             </form>
         </div>
-    </AdminLayout>
+    </AppLayout>
 </template>

@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InterviewSchedule extends Model
 {
@@ -58,5 +60,35 @@ class InterviewSchedule extends Model
     public function timeUntil()
     {
         return $this->scheduled_at->diffForHumans();
+    }
+
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if (
+            $user->hasRole('admin')
+            || $user->can('interviews.view-all-branches')
+        ) {
+            return $query;
+        }
+
+        if (
+            $user->hasRole('hr')
+            && $user->can('interviews.view-branch')
+        ) {
+            return $query->whereHas(
+                'candidate',
+                fn(Builder $candidateQuery) =>
+                $candidateQuery->where('branch_id', $user->branch_id)
+            );
+        }
+
+        if (
+            $user->isInterviewer()
+            && $user->can('interviews.view-assigned')
+        ) {
+            return $query->where('interviewer_id', $user->id);
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 }

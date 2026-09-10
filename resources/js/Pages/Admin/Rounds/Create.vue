@@ -1,5 +1,5 @@
 <script setup>
-import AdminLayout from "@/Layouts/AdminLayout.vue";
+import AppLayout from "@/Layouts/AppLayout.vue";
 import { useForm, Link } from "@inertiajs/vue3";
 
 const props = defineProps({ nextSequence: Number });
@@ -17,7 +17,7 @@ const submit = () => form.post(route("admin.rounds.store"));
 </script>
 
 <template>
-    <AdminLayout>
+    <AppLayout>
         <div class="max-w-xl mx-auto space-y-5">
             <div class="flex items-center gap-3">
                 <Link
@@ -169,5 +169,5 @@ const submit = () => form.post(route("admin.rounds.store"));
                 </div>
             </form>
         </div>
-    </AdminLayout>
+    </AppLayout>
 </template>
