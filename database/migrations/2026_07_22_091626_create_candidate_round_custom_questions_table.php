@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create(
@@ -91,15 +90,15 @@ return new class extends Migration
 
                 $table->timestamps();
 
-                $table->index([
-                    'progress_id',
-                    'interviewer_id',
-                ]);
+                $table->index(
+                    ['progress_id', 'interviewer_id'],
+                    'cand_round_custom_q_progress_interviewer_idx'
+                );
 
-                $table->index([
-                    'candidate_id',
-                    'progress_id',
-                ]);
+                $table->index(
+                    ['progress_id', 'candidate_id'],
+                    'cand_round_custom_q_progress_candidate_idx'
+                );
             }
         );
     }
