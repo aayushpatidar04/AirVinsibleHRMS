@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('candidate_round_progress', function (Blueprint $table) {
-            $table->text('salary_discussion_notes ')->nullable();
+            $table->text('salary_discussion_notes')->nullable();
         });
     }
 
