@@ -46,6 +46,21 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for(
+            'interview-lookup',
+            function (Request $request) {
+                return [
+                    Limit::perMinute(20)->by($request->ip()),
+
+                    Limit::perMinute(5)->by(
+                        $request->ip()
+                        . '|' .
+                        sha1(mb_strtolower((string) $request->input('email')))
+                    ),
+                ];
+            }
+        );
+
+        RateLimiter::for(
             'offer-portal',
             function (Request $request) {
                 return [

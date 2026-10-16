@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\FormController;
 use App\Http\Controllers\Admin\QRCodeController;
 use App\Http\Controllers\Admin\CandidateController as AdminCandidateController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Candidate\InterviewLookupController;
 use App\Http\Controllers\Candidate\RegistrationController;
 use App\Http\Controllers\HR\DashboardController as HrDashboard;
 use App\Http\Controllers\Interviewer\DashboardController as InterviewerDashboard;
@@ -35,6 +36,13 @@ Route::get('/', fn() => Inertia::render('Welcome'))->name('home');
 // Candidate registration via QR code (no auth required)
 Route::get('/register/{uuid}', [RegistrationController::class, 'show'])->name('candidate.register');
 Route::post('/register/{uuid}', [RegistrationController::class, 'store'])->name('candidate.register.store');
+
+// Interview lookup for candidates and reception (public, throttled)
+Route::get('/interview-check', [InterviewLookupController::class, 'show'])
+    ->name('interview-lookup.show');
+Route::post('/interview-check', [InterviewLookupController::class, 'search'])
+    ->middleware('throttle:interview-lookup')
+    ->name('interview-lookup.search');
 
 // Candidate status check (public, no auth)
 Route::get('/status/{uuid}', [RegistrationController::class, 'status'])->name('candidate.status');
