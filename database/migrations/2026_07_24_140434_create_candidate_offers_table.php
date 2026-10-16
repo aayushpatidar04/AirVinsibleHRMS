@@ -30,7 +30,7 @@ return new class extends Migration {
             |--------------------------------------------------------------------------
             */
 
-            $table->string('offer_number')->unique();
+            $table->string('offer_number');
 
             /*
              * Incremented whenever a new offer revision is prepared.
@@ -41,6 +41,11 @@ return new class extends Migration {
              */
             $table->unsignedSmallInteger('version')
                 ->default(1);
+
+            $table->unique(
+                ['offer_number', 'version'],
+                'candidate_offers_number_version_unique'
+            );
 
             /*
              * Supported statuses:

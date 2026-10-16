@@ -1065,9 +1065,9 @@ class CandidateOfferController extends Controller
                 $latestVersion =
                     CandidateOffer::query()
                         ->where(
-                            'candidate_id',
+                            'offer_number',
                             $lockedOriginalOffer
-                                ->candidate_id
+                                ->offer_number
                         )
                         ->max('version');
 

@@ -581,8 +581,8 @@ class CandidateOffer extends Model
         return DB::transaction(function () use ($generatedBy) {
             $latestVersion = self::query()
                 ->where(
-                    'candidate_id',
-                    $this->candidate_id
+                    'offer_number',
+                    $this->offer_number
                 )
                 ->lockForUpdate()
                 ->max('version');
@@ -609,7 +609,7 @@ class CandidateOffer extends Model
 
             $revision->fill([
                 'offer_number' =>
-                    self::generateOfferNumber(),
+                    $this->offer_number,
 
                 'version' =>
                     ((int) $latestVersion) + 1,
