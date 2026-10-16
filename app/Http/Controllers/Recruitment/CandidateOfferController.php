@@ -3100,7 +3100,7 @@ class CandidateOfferController extends Controller
                 )
                 ->with(
                     'success',
-                    'Offer letter sent successfully.'
+                    'Offer email submitted to the mail server successfully.'
                 );
         } catch (Throwable $exception) {
             report($exception);

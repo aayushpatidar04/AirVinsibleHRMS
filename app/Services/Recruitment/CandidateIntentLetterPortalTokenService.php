@@ -14,7 +14,7 @@ class CandidateIntentLetterPortalTokenService
         $letter->forceFill([
             'portal_token_hash' => hash('sha256', $plainToken),
             'portal_token_expires_at' => now()->addDays(
-                config('recruitment.intent_letter_portal_expiry_days', 30)
+                (int) config('recruitment.intent_letter_portal_expiry_days', 30)
             ),
         ])->save();
 

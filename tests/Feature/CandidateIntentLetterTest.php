@@ -38,6 +38,26 @@ test('intent letter acknowledgement records the submitted name and preliminary-o
         ->toContain('not the final employment offer');
 });
 
+test('intent letter portal expiry accepts numeric environment strings', function () {
+    $candidate = intentLetterTestCandidate();
+    $letter = CandidateIntentLetter::query()->create([
+        'candidate_id' => $candidate->id,
+        'position_title' => 'Customer Support Executive',
+        'work_location' => 'Indore',
+        'monthly_ctc' => 25000,
+        'monthly_in_hand' => 22000,
+        'joining_date' => today()->addDays(10),
+        'letter_date' => today(),
+    ]);
+
+    config()->set('recruitment.intent_letter_portal_expiry_days', '5');
+
+    app(CandidateIntentLetterPortalTokenService::class)->issue($letter);
+
+    expect($letter->fresh()->portal_token_expires_at->toDateString())
+        ->toBe(now()->addDays(5)->toDateString());
+});
+
 test('candidate can acknowledge a sent intent letter and receive an acknowledged PDF', function () {
     Storage::fake('local');
 

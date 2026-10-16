@@ -81,7 +81,7 @@ class OfferPortalTokenService
         }
 
         return now()->addDays(
-            config(
+            (int) config(
                 'recruitment.offer_portal.default_expiry_days',
                 15
             )
