@@ -448,11 +448,41 @@ class CandidateOfferPortalController extends Controller
         CandidateOffer $offer,
         array $calculation
     ): array {
-        $calculatedComponents =
-            collect(
-                $calculation['components']
-                ?? []
-            )->keyBy('id');
+        $calculatedComponents = collect($calculation)
+            ->keyBy('id');
+
+        $monthlyGross = $calculatedComponents
+            ->where('component_type', OfferSalaryComponent::TYPE_EARNING)
+            ->sum('monthly_amount');
+
+        $monthlyDeductions = $calculatedComponents
+            ->filter(
+                fn (array $component) =>
+                    $component['component_type'] === OfferSalaryComponent::TYPE_DEDUCTION
+                    && $component['affects_in_hand']
+            )
+            ->sum('monthly_amount');
+
+        $monthlyEmployerContributions = $calculatedComponents
+            ->where(
+                'component_type',
+                OfferSalaryComponent::TYPE_EMPLOYER_CONTRIBUTION
+            )
+            ->sum('monthly_amount');
+
+        $annualCtc = $calculatedComponents
+            ->filter(
+                fn (array $component) =>
+                    in_array(
+                        $component['component_type'],
+                        [
+                            OfferSalaryComponent::TYPE_EARNING,
+                            OfferSalaryComponent::TYPE_EMPLOYER_CONTRIBUTION,
+                        ],
+                        true
+                    )
+            )
+            ->sum('annual_amount');
 
         return [
             'offer_number' =>
@@ -534,34 +564,27 @@ class CandidateOfferPortalController extends Controller
 
             'salary_summary' => [
                 'monthly_gross' =>
-                    $calculation[
-                        'monthly_gross'
-                    ] ?? 0,
+                    $monthlyGross,
 
                 'monthly_deductions' =>
-                    $calculation[
-                        'monthly_deductions'
-                    ] ?? 0,
+                    $monthlyDeductions,
 
                 'monthly_employer_contributions' =>
-                    $calculation[
-                        'monthly_employer_contributions'
-                    ] ?? 0,
+                    $monthlyEmployerContributions,
 
                 'monthly_in_hand' =>
-                    $calculation[
-                        'monthly_in_hand'
-                    ] ?? 0,
+                    $monthlyGross - $monthlyDeductions,
 
                 'annual_gross' =>
-                    $calculation[
-                        'annual_gross'
-                    ] ?? 0,
+                    $calculatedComponents
+                        ->where(
+                            'component_type',
+                            OfferSalaryComponent::TYPE_EARNING
+                        )
+                        ->sum('annual_amount'),
 
                 'annual_ctc' =>
-                    $calculation[
-                        'annual_ctc'
-                    ] ?? 0,
+                    $annualCtc,
             ],
 
             'salary_components' =>

@@ -29,8 +29,8 @@ function money(value, currency) {
         <div class="overflow-hidden rounded-xl border border-slate-200">
             <div class="hidden grid-cols-[minmax(0,1fr)_auto_auto] gap-3 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 sm:grid">
                 <span>Component</span>
-                <span class="text-right">Monthly</span>
-                <span class="text-right">Annual</span>
+                <span class="text-right min-w-32">Monthly</span>
+                <span class="text-right min-w-32">Annual</span>
             </div>
             <div
                 v-for="item in items"
@@ -41,11 +41,11 @@ function money(value, currency) {
                     <p class="break-words font-medium text-slate-800">{{ item.name }}</p>
                     <p v-if="item.description" class="mt-0.5 text-xs leading-5 text-slate-500">{{ item.description }}</p>
                 </div>
-                <div class="flex justify-between gap-2 text-slate-700 sm:block sm:whitespace-nowrap sm:text-right">
+                <div class="flex justify-between gap-2 text-slate-700 sm:block sm:whitespace-nowrap sm:text-right min-w-32">
                     <span class="text-xs text-slate-500 sm:hidden">Monthly</span>
                     <span>{{ money(item.monthly_amount, currency) }}</span>
                 </div>
-                <div class="flex justify-between gap-2 font-medium text-slate-900 sm:block sm:whitespace-nowrap sm:text-right">
+                <div class="flex justify-between gap-2 font-medium text-slate-900 sm:block sm:whitespace-nowrap sm:text-right min-w-32">
                     <span class="text-xs font-normal text-slate-500 sm:hidden">Annual</span>
                     <span>{{ money(item.annual_amount, currency) }}</span>
                 </div>
