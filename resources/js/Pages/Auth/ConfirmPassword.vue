@@ -1,55 +1,23 @@
 <script setup>
-import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import AuthLayout from '@/Layouts/AuthLayout.vue'
+import AuthField from '@/Components/Auth/AuthField.vue'
+import { Head, useForm } from '@inertiajs/vue3'
 
-const form = useForm({
-    password: '',
-});
-
-const submit = () => {
-    form.post(route('password.confirm'), {
-        onFinish: () => form.reset(),
-    });
-};
+const form = useForm({ password: '' })
+const submit = () => form.post(route('password.confirm'), { onFinish: () => form.reset() })
 </script>
 
 <template>
-    <GuestLayout>
-        <Head title="Confirm Password" />
+    <Head title="Confirm password — Airvincible HRMS" />
 
-        <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-            This is a secure area of the application. Please confirm your
-            password before continuing.
-        </div>
+    <AuthLayout title="Confirm your password" subtitle="This area is protected. Enter your password to continue." icon="shield">
+        <form @submit.prevent="submit" class="space-y-5">
+            <AuthField v-model="form.password" label="Password" type="password" autocomplete="current-password"
+                placeholder="Enter your password" :error="form.errors.password" required autofocus />
 
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="password" value="Password" />
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password"
-                    required
-                    autocomplete="current-password"
-                    autofocus
-                />
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div class="mt-4 flex justify-end">
-                <PrimaryButton
-                    class="ms-4"
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    Confirm
-                </PrimaryButton>
-            </div>
+            <button type="submit" :disabled="form.processing" class="btn-primary w-full !py-3">
+                {{ form.processing ? 'Confirming…' : 'Confirm' }}
+            </button>
         </form>
-    </GuestLayout>
+    </AuthLayout>
 </template>

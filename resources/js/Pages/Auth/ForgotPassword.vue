@@ -1,47 +1,31 @@
 <script setup>
-// ForgotPassword.vue
-import GuestLayout from '@/Layouts/GuestLayout.vue'
+import AuthLayout from '@/Layouts/AuthLayout.vue'
+import AuthField from '@/Components/Auth/AuthField.vue'
 import { useForm, Link, Head } from '@inertiajs/vue3'
 
 defineProps({ status: String })
+
 const form = useForm({ email: '' })
 const submit = () => form.post(route('password.email'))
 </script>
 
 <template>
-    <GuestLayout>
+    <Head title="Forgot password — Airvincible HRMS" />
 
-        <Head title="Forgot Password — HRMS" />
-        <div class="sm:mx-auto sm:w-full sm:max-w-md">
-            <div class="text-center mb-8">
-                <div
-                    class="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-indigo-600 text-white text-3xl mb-4">
-                    ⚡</div>
-                <h1 class="text-2xl font-bold text-gray-900">Forgot Password</h1>
-                <p class="mt-1 text-sm text-gray-500">We'll email you a reset link.</p>
-            </div>
+    <AuthLayout title="Forgot your password?" subtitle="Enter your email and we will send you a link to choose a new one." icon="key">
+        <div v-if="status" class="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{{ status }}</div>
 
-            <div class="bg-white py-8 px-8 shadow-xl rounded-2xl border border-gray-100">
-                <div v-if="status"
-                    class="mb-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
-                    {{ status }}
-                </div>
-                <form @submit.prevent="submit" class="space-y-5">
-                    <div>
-                        <label class="label">Email address</label>
-                        <input v-model="form.email" type="email" class="input-field" placeholder="you@company.com"
-                            required />
-                        <p v-if="form.errors.email" class="error">{{ form.errors.email }}</p>
-                    </div>
-                    <button type="submit" :disabled="form.processing"
-                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition disabled:opacity-60">
-                        {{ form.processing ? 'Sending...' : 'Send Reset Link' }}
-                    </button>
-                </form>
-                <p class="mt-4 text-center text-sm text-gray-500">
-                    <Link :href="route('login')" class="text-indigo-600 hover:underline">Back to login</Link>
-                </p>
-            </div>
-        </div>
-    </GuestLayout>
+        <form @submit.prevent="submit" class="space-y-5">
+            <AuthField v-model="form.email" label="Email address" type="email" autocomplete="email"
+                placeholder="you@company.com" :error="form.errors.email" required autofocus />
+
+            <button type="submit" :disabled="form.processing" class="btn-primary w-full !py-3">
+                {{ form.processing ? 'Sending…' : 'Send reset link' }}
+            </button>
+        </form>
+
+        <p class="mt-6 text-center text-sm">
+            <Link :href="route('login')" class="font-semibold text-indigo-600 hover:text-indigo-800">Back to sign in</Link>
+        </p>
+    </AuthLayout>
 </template>

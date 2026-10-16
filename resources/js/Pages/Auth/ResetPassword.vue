@@ -1,5 +1,6 @@
 <script setup>
-import GuestLayout from '@/Layouts/GuestLayout.vue'
+import AuthLayout from '@/Layouts/AuthLayout.vue'
+import AuthField from '@/Components/Auth/AuthField.vue'
 import { useForm, Head } from '@inertiajs/vue3'
 
 const props = defineProps({ token: String, email: String })
@@ -10,44 +11,27 @@ const form = useForm({
     password: '',
     password_confirmation: '',
 })
-const submit = () => form.post(route('password.store'), { onFinish: () => form.reset('password', 'password_confirmation') })
+const submit = () => form.post(route('password.store'), {
+    onFinish: () => form.reset('password', 'password_confirmation'),
+})
 </script>
 
 <template>
-    <GuestLayout>
+    <Head title="Reset password — Airvincible HRMS" />
 
-        <Head title="Reset Password — HRMS" />
-        <div class="sm:mx-auto sm:w-full sm:max-w-md">
-            <div class="text-center mb-8">
-                <div
-                    class="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-indigo-600 text-white text-3xl mb-4">
-                    ⚡</div>
-                <h1 class="text-2xl font-bold text-gray-900">Reset Password</h1>
-            </div>
-            <div class="bg-white py-8 px-8 shadow-xl rounded-2xl border border-gray-100">
-                <form @submit.prevent="submit" class="space-y-5">
-                    <div>
-                        <label class="label">Email</label>
-                        <input v-model="form.email" type="email" class="input-field" autocomplete="username" />
-                        <p v-if="form.errors.email" class="error">{{ form.errors.email }}</p>
-                    </div>
-                    <div>
-                        <label class="label">New Password</label>
-                        <input v-model="form.password" type="password" class="input-field"
-                            placeholder="Min 8 characters" autocomplete="new-password" />
-                        <p v-if="form.errors.password" class="error">{{ form.errors.password }}</p>
-                    </div>
-                    <div>
-                        <label class="label">Confirm Password</label>
-                        <input v-model="form.password_confirmation" type="password" class="input-field"
-                            autocomplete="new-password" />
-                    </div>
-                    <button type="submit" :disabled="form.processing"
-                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition disabled:opacity-60">
-                        {{ form.processing ? 'Resetting...' : 'Reset Password' }}
-                    </button>
-                </form>
-            </div>
-        </div>
-    </GuestLayout>
+    <AuthLayout title="Choose a new password" subtitle="Your new password must be at least 8 characters." icon="key">
+        <form @submit.prevent="submit" class="space-y-5">
+            <AuthField v-model="form.email" label="Email address" type="email" autocomplete="username"
+                :error="form.errors.email" required />
+            <AuthField v-model="form.password" label="New password" type="password" autocomplete="new-password"
+                placeholder="At least 8 characters" :error="form.errors.password" required autofocus />
+            <AuthField v-model="form.password_confirmation" label="Confirm new password" type="password"
+                autocomplete="new-password" placeholder="Re-enter your new password"
+                :error="form.errors.password_confirmation" required />
+
+            <button type="submit" :disabled="form.processing" class="btn-primary w-full !py-3">
+                {{ form.processing ? 'Saving…' : 'Reset password' }}
+            </button>
+        </form>
+    </AuthLayout>
 </template>
