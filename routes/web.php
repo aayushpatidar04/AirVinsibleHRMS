@@ -20,6 +20,8 @@ use App\Http\Controllers\Interviewer\CandidateController as InterviewerCandidate
 use App\Http\Controllers\Interviewer\InterviewController;
 use App\Http\Controllers\Recruitment\CandidateOfferController;
 use App\Http\Controllers\Recruitment\CandidateOfferPortalController;
+use App\Http\Controllers\Recruitment\CandidateIntentLetterController;
+use App\Http\Controllers\Recruitment\CandidateIntentLetterPortalController;
 
 /*
 |--------------------------------------------------------------------------
@@ -173,6 +175,62 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 '/candidates/compare',
                 [AdminCandidateController::class, 'compare']
             )->name('candidates.compare');
+
+            Route::get(
+                '/candidates/{candidate}/intent-letters/create',
+                [CandidateIntentLetterController::class, 'create']
+            )
+                ->middleware('permission:candidates.final-decision')
+                ->name('candidates.intent-letters.create');
+
+            Route::post(
+                '/candidates/{candidate}/intent-letters',
+                [CandidateIntentLetterController::class, 'store']
+            )
+                ->middleware('permission:candidates.final-decision')
+                ->name('candidates.intent-letters.store');
+
+            Route::get(
+                '/intent-letters/{candidateIntentLetter}',
+                [CandidateIntentLetterController::class, 'show']
+            )
+                ->middleware('permission:candidates.final-decision')
+                ->name('intent-letters.show');
+
+            Route::get(
+                '/intent-letters/{candidateIntentLetter}/edit',
+                [CandidateIntentLetterController::class, 'edit']
+            )
+                ->middleware('permission:candidates.final-decision')
+                ->name('intent-letters.edit');
+
+            Route::put(
+                '/intent-letters/{candidateIntentLetter}',
+                [CandidateIntentLetterController::class, 'update']
+            )
+                ->middleware('permission:candidates.final-decision')
+                ->name('intent-letters.update');
+
+            Route::post(
+                '/intent-letters/{candidateIntentLetter}/send',
+                [CandidateIntentLetterController::class, 'send']
+            )
+                ->middleware('permission:candidates.final-decision')
+                ->name('intent-letters.send');
+
+            Route::post(
+                '/intent-letters/{candidateIntentLetter}/cancel',
+                [CandidateIntentLetterController::class, 'cancel']
+            )
+                ->middleware('permission:candidates.final-decision')
+                ->name('intent-letters.cancel');
+
+            Route::get(
+                '/intent-letters/{candidateIntentLetter}/download',
+                [CandidateIntentLetterController::class, 'download']
+            )
+                ->middleware('permission:candidates.final-decision')
+                ->name('intent-letters.download');
 
             Route::get(
                 '/candidates/{candidate}',
@@ -511,5 +569,30 @@ Route::prefix('candidate-offer')
                 CandidateOfferPortalController::class,
                 'decline',
             ]
+        )->name('decline');
+    });
+
+Route::prefix('candidate-intent')
+    ->name('candidate-intent-letters.portal.')
+    ->middleware(['throttle:offer-portal'])
+    ->group(function () {
+        Route::get(
+            '{token}',
+            [CandidateIntentLetterPortalController::class, 'show']
+        )->name('show');
+
+        Route::get(
+            '{token}/pdf',
+            [CandidateIntentLetterPortalController::class, 'download']
+        )->name('download');
+
+        Route::post(
+            '{token}/acknowledge',
+            [CandidateIntentLetterPortalController::class, 'acknowledge']
+        )->name('acknowledge');
+
+        Route::post(
+            '{token}/decline',
+            [CandidateIntentLetterPortalController::class, 'decline']
         )->name('decline');
     });

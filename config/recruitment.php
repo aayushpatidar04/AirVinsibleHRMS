@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'intent_letter_portal_expiry_days' => env(
+        'INTENT_LETTER_PORTAL_EXPIRY_DAYS',
+        30
+    ),
+
     'offer_portal' => [
         'default_expiry_days' => env(
             'OFFER_PORTAL_EXPIRY_DAYS',

@@ -389,6 +389,46 @@ const minDateTime = computed(() => {
                     <Link
                         v-if="
                             candidate.final_status === 'selected' &&
+                            !candidate.active_offer &&
+                            (
+                                !candidate.intent_letter ||
+                                candidate.intent_letter.status ===
+                                    'cancelled'
+                            )
+                        "
+                        :href="
+                            route(
+                                'recruitment.candidates.intent-letters.create',
+                                candidate.id,
+                            )
+                        "
+                        class="btn-primary bg-purple-600 hover:bg-purple-700"
+                    >
+                        Create Intent Letter
+                    </Link>
+                    <Link
+                        v-if="
+                            candidate.final_status === 'selected' &&
+                            candidate.intent_letter &&
+                            candidate.intent_letter.status !==
+                                'cancelled' &&
+                            !candidate.active_offer
+                        "
+                        :href="candidate.intent_letter.url"
+                        class="btn-primary bg-indigo-600 hover:bg-indigo-700"
+                    >
+                        {{
+                            candidate.intent_letter.status ===
+                            "acknowledged"
+                                ? "View Acknowledged Intent"
+                                : "View Intent Letter"
+                        }}
+                    </Link>
+                    <Link
+                        v-if="
+                            candidate.final_status === 'selected' &&
+                            candidate.intent_letter?.status ===
+                                'acknowledged' &&
                             !candidate.active_offer
                         "
                         :href="
@@ -1594,13 +1634,13 @@ const minDateTime = computed(() => {
                     >
                         <div>
                             <h3 class="font-semibold text-purple-900">
-                                Next Stage: Offer and Onboarding
+                                Next Stage: Intent, Offer and Onboarding
                             </h3>
 
                             <p class="mt-1 text-sm text-purple-700">
-                                After selection, the candidate can move to offer
-                                acceptance, document collection, joining
-                                confirmation and employee creation.
+                                Send the Letter of Intent and record the
+                                candidate's acknowledgement before preparing
+                                the formal offer.
                             </p>
                         </div>
 
@@ -1612,12 +1652,29 @@ const minDateTime = computed(() => {
                     </div>
 
                     <div
-                        class="mt-4 grid grid-cols-2 gap-3 text-sm md:grid-cols-4"
+                        class="mt-4 grid grid-cols-2 gap-3 text-sm md:grid-cols-5"
                     >
                         <div
                             class="rounded-lg border border-purple-100 bg-white/70 p-3 text-center text-purple-800"
                         >
-                            Offer Generated
+                            Intent Letter
+                            <span
+                                v-if="candidate.intent_letter"
+                                class="mt-1 block text-xs font-semibold"
+                            >
+                                {{
+                                    candidate.intent_letter.status ===
+                                    "acknowledged"
+                                        ? "Acknowledged"
+                                        : candidate.intent_letter.status
+                                }}
+                            </span>
+                        </div>
+
+                        <div
+                            class="rounded-lg border border-purple-100 bg-white/70 p-3 text-center text-purple-800"
+                        >
+                            Formal Offer
                         </div>
 
                         <div

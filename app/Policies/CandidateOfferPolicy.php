@@ -81,7 +81,8 @@ class CandidateOfferPolicy
          * An offer should only be created once the final hiring
          * decision is Selected.
          */
-        return $candidate->final_status === 'selected';
+        return $candidate->final_status === 'selected'
+            && $candidate->latestIntentLetter?->isAcknowledged() === true;
     }
 
     /**

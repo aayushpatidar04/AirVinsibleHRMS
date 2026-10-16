@@ -9,6 +9,7 @@ use App\Http\Requests\Recruitment\SendCandidateOfferRequest;
 use App\Mail\CandidateOfferMail;
 use App\Models\Branch;
 use App\Models\Candidate;
+use App\Models\CandidateIntentLetter;
 use App\Models\CandidateOffer;
 use App\Models\User;
 use App\Models\OfferSalaryComponent;
@@ -247,8 +248,34 @@ class CandidateOfferController extends Controller
     /**
      * Open the Offer Builder for a selected candidate.
      */
-    public function create(Candidate $candidate, Request $request): Response
+    public function create(Candidate $candidate, Request $request): Response|RedirectResponse
     {
+        $this->authorize(
+            'finalDecision',
+            $candidate
+        );
+
+        abort_unless($candidate->final_status === 'selected', 403);
+
+        $intentLetter = $candidate->latestIntentLetter;
+
+        if (!$intentLetter?->isAcknowledged()) {
+            if (
+                $intentLetter &&
+                $intentLetter->status !== CandidateIntentLetter::STATUS_CANCELLED
+            ) {
+                return redirect()->route(
+                    'recruitment.intent-letters.show',
+                    $intentLetter
+                );
+            }
+
+            return redirect()->route(
+                'recruitment.candidates.intent-letters.create',
+                $candidate
+            );
+        }
+
         Gate::authorize(
             'create',
             [CandidateOffer::class, $candidate]
@@ -358,6 +385,31 @@ class CandidateOfferController extends Controller
                         ->findOrFail(
                             $candidate->id
                         );
+
+                if ($lockedCandidate->final_status !== 'selected') {
+                    abort(
+                        409,
+                        'Only selected candidates can receive a formal offer.'
+                    );
+                }
+
+                $hasAcknowledgedIntentLetter =
+                    CandidateIntentLetter::query()
+                        ->where('candidate_id', $lockedCandidate->id)
+                        ->where(
+                            'status',
+                            CandidateIntentLetter::STATUS_ACKNOWLEDGED
+                        )
+                        ->whereNotNull('acknowledged_at')
+                        ->where('candidate_consent', true)
+                        ->exists();
+
+                if (!$hasAcknowledgedIntentLetter) {
+                    abort(
+                        409,
+                        'The candidate must acknowledge the Letter of Intent before a formal offer can be created.'
+                    );
+                }
 
                 $activeOfferExists =
                     CandidateOffer::query()

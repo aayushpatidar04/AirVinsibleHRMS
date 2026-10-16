@@ -96,7 +96,14 @@ class CandidateController extends Controller
     public function show(Candidate $candidate, InterviewHistoryService $historyService, CandidateScorecardService $scorecardService)
     {
         $this->authorize('view', $candidate);
-        $candidate->load('branch', 'currentRound', 'currentInterviewer', 'formSubmission.form', 'latestOffer');
+        $candidate->load(
+            'branch',
+            'currentRound',
+            'currentInterviewer',
+            'formSubmission.form',
+            'latestOffer',
+            'latestIntentLetter'
+        );
         $scorecard = $scorecardService->forCandidate($candidate);
 
         $progressHistory = $historyService
@@ -287,6 +294,25 @@ class CandidateController extends Controller
                             $candidate->latestOffer->status,
                         'status_label' =>
                             $candidate->latestOffer->status_label,
+                    ]
+                    : null,
+                'intent_letter' => $candidate->latestIntentLetter
+                    ? [
+                        'id' => $candidate->latestIntentLetter->id,
+                        'letter_number' =>
+                            $candidate->latestIntentLetter->letter_number,
+                        'status' =>
+                            $candidate->latestIntentLetter->status,
+                        'acknowledged_at' =>
+                            $candidate->latestIntentLetter->acknowledged_at
+                                ?->format('d M Y H:i'),
+                        'acknowledgement_name' =>
+                            $candidate->latestIntentLetter
+                                ->acknowledgement_name,
+                        'url' => route(
+                            'recruitment.intent-letters.show',
+                            $candidate->latestIntentLetter
+                        ),
                     ]
                     : null,
             ],

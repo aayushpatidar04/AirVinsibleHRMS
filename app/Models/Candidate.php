@@ -193,6 +193,17 @@ class Candidate extends Model
             ->latestOfMany('version');
     }
 
+    public function intentLetters(): HasMany
+    {
+        return $this->hasMany(CandidateIntentLetter::class);
+    }
+
+    public function latestIntentLetter(): HasOne
+    {
+        return $this->hasOne(CandidateIntentLetter::class)
+            ->latestOfMany();
+    }
+
     /* ─── Scopes ─── */
 
     public function scopeByStatus($query, string $status)
