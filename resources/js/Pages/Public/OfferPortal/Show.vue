@@ -1,7 +1,6 @@
 <script setup>
 import {
     computed,
-    reactive,
     ref,
 } from "vue";
 
@@ -16,19 +15,21 @@ import {
     FileCheck2,
     FileText,
     Landmark,
-    LoaderCircle,
     MapPin,
     ShieldCheck,
     ThumbsDown,
     WalletCards,
-    X,
 } from "lucide-vue-next";
 
 import {
     Head,
-    router,
     useForm,
 } from "@inertiajs/vue3";
+
+import DetailItem from "./Components/DetailItem.vue";
+import ResponseModal from "./Components/ResponseModal.vue";
+import SalaryGroup from "./Components/SalaryGroup.vue";
+import SummaryCard from "./Components/SummaryCard.vue";
 
 const props = defineProps({
     company: {

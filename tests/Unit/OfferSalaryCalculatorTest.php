@@ -15,6 +15,7 @@ class OfferSalaryCalculatorTest extends TestCase
 
         $result = $calculator->summarize([
             [
+                'id' => 101,
                 'row_key' => 'basic',
 
                 'component_name' =>
@@ -38,6 +39,7 @@ class OfferSalaryCalculatorTest extends TestCase
             ],
 
             [
+                'id' => 102,
                 'row_key' => 'hra',
 
                 'component_name' =>
@@ -66,6 +68,7 @@ class OfferSalaryCalculatorTest extends TestCase
             ],
 
             [
+                'id' => 103,
                 'row_key' => 'employee-pf',
 
                 'component_name' =>
@@ -94,6 +97,7 @@ class OfferSalaryCalculatorTest extends TestCase
             ],
 
             [
+                'id' => 104,
                 'row_key' => 'employer-pf',
 
                 'component_name' =>
@@ -147,6 +151,30 @@ class OfferSalaryCalculatorTest extends TestCase
         $this->assertSame(
             364800.0,
             $result['annual_ctc']
+        );
+
+        $componentsById = collect(
+            $result['components']
+        )->keyBy('id');
+
+        $this->assertSame(
+            20000.0,
+            $componentsById[101]['monthly_amount']
+        );
+
+        $this->assertSame(
+            8000.0,
+            $componentsById[102]['monthly_amount']
+        );
+
+        $this->assertSame(
+            2400.0,
+            $componentsById[103]['monthly_amount']
+        );
+
+        $this->assertSame(
+            2400.0,
+            $componentsById[104]['monthly_amount']
         );
     }
 

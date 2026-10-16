@@ -329,17 +329,31 @@ class CandidateOfferPortalController extends Controller
     private function calculateSalary(
         CandidateOffer $offer
     ): array {
+        $components = $offer->salaryComponents()
+            ->with('percentageOfComponent')
+            ->orderBy('sort_order')
+            ->get()
+            ->values();
+
+        $idToRowKey = $components
+            ->mapWithKeys(
+                fn (OfferSalaryComponent $component, int $index) => [
+                    $component->id =>
+                        'component-' . ($index + 1),
+                ]
+            );
+
         return $this->salaryCalculator->calculate(
-            $offer->salaryComponents
+            $components
                 ->map(
-                    fn(
-                    OfferSalaryComponent $component
-                ) => [
+                    fn (OfferSalaryComponent $component) => [
                         'id' =>
                             $component->id,
 
                         'row_key' =>
-                            $component->row_key,
+                            $idToRowKey[
+                                $component->id
+                            ],
 
                         'component_name' =>
                             $component->component_name,
@@ -361,9 +375,15 @@ class CandidateOfferPortalController extends Controller
                                 ->percentage_of_component_id,
 
                         'percentage_of_row_key' =>
-                            $component
-                                ->percentageOfComponent
-                                    ?->row_key,
+                            $component->percentage_of_component_id
+                                ? (
+                                    $idToRowKey[
+                                        $component
+                                            ->percentage_of_component_id
+                                    ]
+                                    ?? null
+                                )
+                                : null,
 
                         'frequency' =>
                             $component->frequency,
@@ -432,11 +452,7 @@ class CandidateOfferPortalController extends Controller
             collect(
                 $calculation['components']
                 ?? []
-            )->keyBy(
-                    fn(array $component) =>
-                    $component['row_key']
-                    ?? $component['id']
-                );
+            )->keyBy('id');
 
         return [
             'offer_number' =>
@@ -471,7 +487,7 @@ class CandidateOfferPortalController extends Controller
                 $offer->work_location,
 
             'process' =>
-                $offer->process,
+                $offer->process_name,
 
             'joining_date' =>
                 optional(
@@ -487,14 +503,9 @@ class CandidateOfferPortalController extends Controller
             'notice_period_days' =>
                 $offer->notice_period_days,
 
-            'valid_from' =>
-                optional(
-                    $offer->valid_from
-                )?->format('Y-m-d'),
-
             'valid_till' =>
                 optional(
-                    $offer->valid_till
+                    $offer->offer_valid_till
                 )?->format('Y-m-d'),
 
             'currency' =>
@@ -555,14 +566,14 @@ class CandidateOfferPortalController extends Controller
 
             'salary_components' =>
                 $offer->salaryComponents
+                    ->where('show_in_offer', true)
                     ->map(
                         function (OfferSalaryComponent $component) use ($calculatedComponents): array {
                             $calculated =
                                 $calculatedComponents->get(
-                                    $component->row_key
-                                    ?? $component->id,
-                                    []
-                                );
+                                $component->id,
+                                []
+                            );
 
                             return [
                                 'id' =>
