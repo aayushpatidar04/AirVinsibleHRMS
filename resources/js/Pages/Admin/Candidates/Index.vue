@@ -126,6 +126,12 @@ const compareCandidates = () => {
                         ({{ selectedCandidates.length }})
                     </span>
                 </button>
+                <Link
+                    href="/recruitment/offers"
+                    class="btn-primary"
+                >
+                    Offer Letters
+                </Link>
             </div>
 
             <!-- Table -->

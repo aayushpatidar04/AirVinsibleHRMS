@@ -295,6 +295,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 [CandidateOfferController::class, 'index']
             )->name('offers.index');
 
+            Route::delete(
+                '/offers/bulk-destroy',
+                [CandidateOfferController::class, 'bulkDestroy']
+            )->name('offers.bulk-destroy');
+
             /*
             |--------------------------------------------------------------------------
             | Create Offer for Candidate

@@ -1214,6 +1214,50 @@ class CandidateOfferController extends Controller
             );
     }
 
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $this->authorize(
+            'bulkDelete',
+            CandidateOffer::class
+        );
+
+        $validated = $request->validate([
+            'offer_ids' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+            'offer_ids.*' => [
+                'required',
+                'integer',
+                'distinct',
+                'exists:candidate_offers,id',
+            ],
+        ]);
+
+        $deletedCount = DB::transaction(function () use ($validated): int {
+            $offers = CandidateOffer::query()
+                ->whereIn('id', $validated['offer_ids'])
+                ->where('status', CandidateOffer::STATUS_DRAFT)
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($offers as $offer) {
+                $this->authorize('delete', $offer);
+            }
+
+            return $offers->each->delete()->count();
+        });
+
+        $message = $deletedCount > 0
+            ? "{$deletedCount} draft offer(s) deleted successfully."
+            : 'No selected offers were eligible for deletion. Only draft offers can be deleted.';
+
+        return redirect()
+            ->route('recruitment.offers.index')
+            ->with($deletedCount > 0 ? 'success' : 'error', $message);
+    }
+
     /**
      * Ensure an offer contains every field required for approval.
      */

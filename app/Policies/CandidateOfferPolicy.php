@@ -259,6 +259,14 @@ class CandidateOfferPolicy
     }
 
     /**
+     * Bulk deletion is limited to offers the user may manage.
+     */
+    public function bulkDelete(User $user): bool
+    {
+        return $this->hasOfferManagementAccess($user);
+    }
+
+    /**
      * Restore a soft-deleted draft offer.
      */
     public function restore(
