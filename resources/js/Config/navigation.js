@@ -78,6 +78,12 @@ export const panelConfigurations = {
                 icon: icons.rounds,
             },
             {
+                name: "Interview Dashboard",
+                route: "recruitment.interviews.dashboard",
+                permission: "interviews.view",
+                icon: icons.calendar,
+            },
+            {
                 name: "Forms",
                 route: "admin.forms.index",
                 permission: "registration-forms.view",
@@ -119,6 +125,12 @@ export const panelConfigurations = {
                 permission: "dashboard.hr.view",
                 icon: icons.dashboard,
                 exact: true,
+            },
+            {
+                name: "Interview Dashboard",
+                route: "recruitment.interviews.dashboard",
+                permission: "interviews.view",
+                icon: icons.calendar,
             },
             {
                 name: "Candidates",

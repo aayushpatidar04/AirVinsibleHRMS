@@ -22,6 +22,7 @@ use App\Http\Controllers\Recruitment\CandidateOfferController;
 use App\Http\Controllers\Recruitment\CandidateOfferPortalController;
 use App\Http\Controllers\Recruitment\CandidateIntentLetterController;
 use App\Http\Controllers\Recruitment\CandidateIntentLetterPortalController;
+use App\Http\Controllers\Recruitment\InterviewDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -164,6 +165,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('recruitment')
         ->name('recruitment.')
         ->group(function () {
+            Route::get(
+                '/interviews',
+                [InterviewDashboardController::class, 'index']
+            )
+                ->middleware('permission:interviews.view')
+                ->name('interviews.dashboard');
+
             Route::get(
                 '/candidates',
                 [AdminCandidateController::class, 'index']
