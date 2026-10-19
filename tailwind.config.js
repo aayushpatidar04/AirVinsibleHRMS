@@ -8,6 +8,7 @@ export default {
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
         './resources/js/**/*.vue',
+        './resources/js/**/*.js',
     ],
 
     theme: {
@@ -37,11 +38,16 @@ export default {
                     '0%': { transform: 'scaleY(0)' },
                     '100%': { transform: 'scaleY(1)' },
                 },
+                'fade-up': {
+                    '0%': { opacity: '0', transform: 'translateY(10px)' },
+                    '100%': { opacity: '1', transform: 'none' },
+                },
             },
             animation: {
                 'card-in': 'card-in .55s cubic-bezier(.2,.8,.2,1) both',
                 'ring-pulse': 'ring-pulse 1.6s ease-out 3 both',
                 'bar-grow': 'bar-grow .7s cubic-bezier(.2,.8,.2,1) both',
+                'fade-up': 'fade-up .45s cubic-bezier(.2,.8,.2,1) both',
             },
         },
     },

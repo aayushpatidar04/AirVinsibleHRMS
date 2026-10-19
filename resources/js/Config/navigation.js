@@ -22,7 +22,7 @@ const icons = {
 
     calendar:
         "M8 7V3m8 4V3m-9 8h10m-12 9h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v11a2 2 0 002 2z",
-    
+
     roles:
         "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm3-11a3 3 0 100-6 3 3 0 000 6zm2 8h4v-1a5 5 0 00-6.713-4.7",
 };
@@ -34,12 +34,16 @@ export const panelConfigurations = {
         dashboardRoute: "admin.dashboard",
 
         colors: {
-            sidebar: "bg-indigo-800",
-            sidebarBorder: "border-indigo-700/50",
-            mutedText: "text-indigo-300",
-            navText: "text-indigo-200",
+            sidebar: "bg-white",
+            sidebarBorder: "border-indigo-100",
+            mutedText: "text-ink-mute",
+            navText: "text-ink-soft",
             headerText: "text-indigo-700",
             linkText: "text-indigo-600",
+            activeItem: "bg-indigo-50 text-indigo-700",
+            hoverItem: "hover:bg-paper-warm hover:text-ink",
+            accentBar: "bg-indigo-600",
+            avatar: "bg-indigo-600 text-white",
         },
 
         navigation: [
@@ -110,12 +114,16 @@ export const panelConfigurations = {
         dashboardRoute: "hr.dashboard",
 
         colors: {
-            sidebar: "bg-violet-800",
-            sidebarBorder: "border-violet-700/50",
-            mutedText: "text-violet-300",
-            navText: "text-violet-200",
+            sidebar: "bg-white",
+            sidebarBorder: "border-violet-100",
+            mutedText: "text-ink-mute",
+            navText: "text-ink-soft",
             headerText: "text-violet-700",
             linkText: "text-violet-600",
+            activeItem: "bg-violet-50 text-violet-700",
+            hoverItem: "hover:bg-paper-warm hover:text-ink",
+            accentBar: "bg-violet-600",
+            avatar: "bg-violet-600 text-white",
         },
 
         navigation: [
@@ -153,12 +161,16 @@ export const panelConfigurations = {
         dashboardRoute: "interviewer.dashboard",
 
         colors: {
-            sidebar: "bg-teal-700",
-            sidebarBorder: "border-teal-800",
-            mutedText: "text-teal-300",
-            navText: "text-teal-100",
+            sidebar: "bg-white",
+            sidebarBorder: "border-teal-100",
+            mutedText: "text-ink-mute",
+            navText: "text-ink-soft",
             headerText: "text-teal-700",
             linkText: "text-teal-600",
+            activeItem: "bg-teal-50 text-teal-700",
+            hoverItem: "hover:bg-paper-warm hover:text-ink",
+            accentBar: "bg-teal-600",
+            avatar: "bg-teal-600 text-white",
         },
 
         navigation: [
@@ -184,12 +196,16 @@ export const panelConfigurations = {
         dashboardRoute: "employee.dashboard",
 
         colors: {
-            sidebar: "bg-slate-800",
-            sidebarBorder: "border-slate-700",
-            mutedText: "text-slate-300",
-            navText: "text-slate-200",
+            sidebar: "bg-white",
+            sidebarBorder: "border-slate-200",
+            mutedText: "text-ink-mute",
+            navText: "text-ink-soft",
             headerText: "text-slate-700",
             linkText: "text-slate-600",
+            activeItem: "bg-slate-100 text-slate-800",
+            hoverItem: "hover:bg-paper-warm hover:text-ink",
+            accentBar: "bg-slate-700",
+            avatar: "bg-slate-700 text-white",
         },
 
         navigation: [

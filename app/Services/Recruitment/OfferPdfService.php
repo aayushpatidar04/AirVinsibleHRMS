@@ -3,6 +3,7 @@
 namespace App\Services\Recruitment;
 
 use App\Models\CandidateOffer;
+use App\Support\LetterHelper;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -159,7 +160,9 @@ class OfferPdfService
                 config('company.name', config('app.name'))
             ),
 
-            'logo_path' => $this->logoPath(),
+            'logo_path' => LetterHelper::logoPath(),
+
+            'footer' => LetterHelper::footer(),
 
             'address' => config(
                 'company.address'
@@ -188,35 +191,9 @@ class OfferPdfService
             ),
 
             'signature_path' =>
-                $this->signaturePath(),
+                LetterHelper::signaturePath(),
         ];
     }
 
-    private function logoPath(): ?string
-    {
-        $relativePath = config(
-            'company.logo_path',
-            'images/company-logo.png'
-        );
 
-        $path = public_path($relativePath);
-
-        return is_file($path)
-            ? $path
-            : null;
-    }
-
-    private function signaturePath(): ?string
-    {
-        $relativePath = config(
-            'company.hr_signature_path',
-            'images/hr-signature.png'
-        );
-
-        $path = public_path($relativePath);
-
-        return is_file($path)
-            ? $path
-            : null;
-    }
 }

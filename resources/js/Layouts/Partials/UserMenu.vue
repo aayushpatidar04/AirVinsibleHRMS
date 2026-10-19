@@ -11,13 +11,8 @@ const props = defineProps({
 
 const page = usePage();
 
-const user = computed(() => {
-    return page.props.auth?.user ?? null;
-});
-
-const roles = computed(() => {
-    return page.props.auth?.roles ?? [];
-});
+const user = computed(() => page.props.auth?.user ?? null);
+const roles = computed(() => page.props.auth?.roles ?? []);
 
 const initials = computed(() => {
     const first = user.value?.first_name?.charAt(0) ?? "";
@@ -29,10 +24,7 @@ const initials = computed(() => {
 const roleLabel = computed(() => {
     if (
         page.props.auth?.primary_role === "hr" &&
-        (
-            roles.value.includes("interviewer") ||
-            user.value?.can_interview
-        )
+        (roles.value.includes("interviewer") || user.value?.can_interview)
     ) {
         return "HR Manager · Interviewer";
     }
@@ -42,29 +34,26 @@ const roleLabel = computed(() => {
 </script>
 
 <template>
-    <div
-        :class="[
-            configuration.colors.sidebarBorder,
-            'border-t px-4 py-4',
-        ]"
-    >
-        <div class="mb-3 flex items-center gap-3">
+    <div :class="[configuration.colors.sidebarBorder, 'border-t p-3']">
+        <div class="flex items-center gap-3 rounded-xl bg-paper px-3 py-2.5">
             <div
-                class="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white"
+                :class="[
+                    configuration.colors.avatar,
+                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold',
+                ]"
             >
                 {{ initials }}
             </div>
 
-            <div class="min-w-0">
-                <p class="truncate text-sm font-medium text-white">
-                    {{ user?.first_name }}
-                    {{ user?.last_name }}
+            <div class="min-w-0 leading-tight">
+                <p class="truncate text-sm font-semibold text-ink">
+                    {{ user?.first_name }} {{ user?.last_name }}
                 </p>
 
                 <p
                     :class="[
                         configuration.colors.mutedText,
-                        'text-xs',
+                        'truncate text-xs',
                     ]"
                 >
                     {{ roleLabel }}
@@ -82,11 +71,24 @@ const roleLabel = computed(() => {
             </div>
         </div>
 
-        <div class="flex gap-2">
+        <div class="mt-2 grid grid-cols-2 gap-2">
             <Link
                 :href="route('profile.edit')"
-                class="flex-1 rounded-lg bg-white/10 px-2 py-1.5 text-center text-xs text-white/70 transition hover:bg-white/20 hover:text-white"
+                class="flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold text-ink-soft transition hover:bg-paper-warm hover:text-ink"
             >
+                <svg
+                    class="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    viewBox="0 0 24 24"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                    />
+                </svg>
                 Profile
             </Link>
 
@@ -94,8 +96,21 @@ const roleLabel = computed(() => {
                 :href="route('logout')"
                 method="post"
                 as="button"
-                class="flex-1 rounded-lg bg-white/10 px-2 py-1.5 text-center text-xs text-white/70 transition hover:bg-white/20 hover:text-white"
+                class="flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold text-ink-soft transition hover:bg-red-50 hover:text-red-600"
             >
+                <svg
+                    class="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    viewBox="0 0 24 24"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
+                    />
+                </svg>
                 Sign out
             </Link>
         </div>

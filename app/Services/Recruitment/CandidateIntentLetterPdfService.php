@@ -3,6 +3,7 @@
 namespace App\Services\Recruitment;
 
 use App\Models\CandidateIntentLetter;
+use App\Support\LetterHelper;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -49,9 +50,10 @@ class CandidateIntentLetterPdfService
             'letter' => $letter,
             'candidate' => $letter->candidate,
             'company' => [
+                'name' => config('company.name', config('app.name')),
                 'legal_name' => config('company.legal_name', 'Airvincible Pvt. Ltd.'),
-                'logo_path' => $this->logoPath(),
-                'hr_email' => config('company.email') ?: 'hr@airvincible.com',
+                'logo_path' => LetterHelper::logoPath(),
+                'footer' => LetterHelper::footer(),
             ],
             'includeAcknowledgement' => $includeAcknowledgement,
         ])
@@ -84,12 +86,4 @@ class CandidateIntentLetterPdfService
         return $path;
     }
 
-    private function logoPath(): ?string
-    {
-        $path = public_path(
-            config('company.logo_path', 'images/company-logo.png')
-        );
-
-        return is_file($path) ? $path : null;
-    }
 }

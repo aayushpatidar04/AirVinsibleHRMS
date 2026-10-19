@@ -29,7 +29,13 @@ return [
 
     'logo_path' => env(
         'COMPANY_LOGO_PATH',
-        'images/company-logo.png'
+        'assets/images/logo.png'
+    ),
+
+    // Footer line printed on every page of the letter PDFs.
+    'letter_footer' => env(
+        'COMPANY_LETTER_FOOTER',
+        '300, 3rd Floor, Mangal City Mall, Vijay Nagar, Indore, M.P. – 452011 Mail ID: - hr@airvincible.com'
     ),
 
     'hr_name' => env(
