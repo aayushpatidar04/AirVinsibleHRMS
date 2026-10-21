@@ -38,6 +38,25 @@ test('intent letter acknowledgement records the submitted name and preliminary-o
         ->toContain('not the final employment offer');
 });
 
+test('intent letter stores the department and reporting contact', function () {
+    $candidate = intentLetterTestCandidate();
+
+    $letter = CandidateIntentLetter::query()->create([
+        'candidate_id' => $candidate->id,
+        'position_title' => 'Customer Support Executive',
+        'department' => 'Customer Support',
+        'reporting_to' => 'Support Manager',
+        'work_location' => 'Indore',
+        'monthly_ctc' => 25000,
+        'monthly_in_hand' => 22000,
+        'joining_date' => today()->addDays(10),
+        'letter_date' => today(),
+    ]);
+
+    expect($letter->fresh()->department)->toBe('Customer Support')
+        ->and($letter->fresh()->reporting_to)->toBe('Support Manager');
+});
+
 test('intent letter portal expiry accepts numeric environment strings', function () {
     $candidate = intentLetterTestCandidate();
     $letter = CandidateIntentLetter::query()->create([

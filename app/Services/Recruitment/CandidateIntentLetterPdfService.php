@@ -54,6 +54,9 @@ class CandidateIntentLetterPdfService
                 'legal_name' => config('company.legal_name', 'Airvincible Pvt. Ltd.'),
                 'logo_path' => LetterHelper::logoPath(),
                 'footer' => LetterHelper::footer(),
+                'hr_name' => config('company.hr_name'),
+                'hr_designation' => config('company.hr_designation'),
+                'signature_path' => LetterHelper::signaturePath(),
             ],
             'includeAcknowledgement' => $includeAcknowledgement,
         ])

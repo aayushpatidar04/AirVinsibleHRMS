@@ -24,6 +24,8 @@ class CandidateIntentLetter extends Model
         'letter_number',
         'status',
         'position_title',
+        'department',
+        'reporting_to',
         'work_location',
         'monthly_ctc',
         'monthly_in_hand',

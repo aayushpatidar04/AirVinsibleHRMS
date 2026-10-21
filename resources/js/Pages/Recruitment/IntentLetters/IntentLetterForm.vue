@@ -11,6 +11,8 @@ const props = defineProps({
 
 const form = useForm({
     position_title: props.defaults.position_title ?? "",
+    department: props.defaults.department ?? "",
+    reporting_to: props.defaults.reporting_to ?? "",
     work_location: props.defaults.work_location ?? "",
     monthly_ctc: props.defaults.monthly_ctc ?? "",
     monthly_in_hand: props.defaults.monthly_in_hand ?? "",
@@ -65,6 +67,40 @@ function submit() {
                     />
                     <p v-if="form.errors.position_title" class="mt-1 text-sm text-red-600">
                         {{ form.errors.position_title }}
+                    </p>
+                </div>
+
+                <div>
+                    <label for="department" class="mb-1.5 block text-sm font-medium text-gray-700">
+                        Department
+                    </label>
+                    <input
+                        id="department"
+                        v-model="form.department"
+                        type="text"
+                        required
+                        maxlength="255"
+                        class="block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    />
+                    <p v-if="form.errors.department" class="mt-1 text-sm text-red-600">
+                        {{ form.errors.department }}
+                    </p>
+                </div>
+
+                <div>
+                    <label for="reporting_to" class="mb-1.5 block text-sm font-medium text-gray-700">
+                        Reporting To
+                    </label>
+                    <input
+                        id="reporting_to"
+                        v-model="form.reporting_to"
+                        type="text"
+                        required
+                        maxlength="255"
+                        class="block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    />
+                    <p v-if="form.errors.reporting_to" class="mt-1 text-sm text-red-600">
+                        {{ form.errors.reporting_to }}
                     </p>
                 </div>
 

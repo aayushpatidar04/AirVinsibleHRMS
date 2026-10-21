@@ -143,10 +143,15 @@ test('draft offers keep the draft watermark and custom terms replace the default
         ->not->toContain('If failed to join on DOJ offer letter will be forfeited.');
 });
 
-test('the letter of intent follows the new format', function () {
+test('the intent letter follows the conditional offer letter format', function () {
+    $candidate = letterTestCandidate();
+    $candidate->phone = '9876543210';
+
     $letter = new CandidateIntentLetter([
-        'letter_number' => 'LOI-1',
+        'letter_number' => 'LOI-2026-00012',
         'position_title' => 'Advisor',
+        'department' => 'Customer Support',
+        'reporting_to' => 'Support Manager',
         'work_location' => 'Indore',
         'monthly_ctc' => 13991,
         'monthly_in_hand' => 12171,
@@ -156,23 +161,61 @@ test('the letter of intent follows the new format', function () {
 
     $html = view('pdf.recruitment.intent-letter', [
         'letter' => $letter,
-        'candidate' => letterTestCandidate(),
+        'candidate' => $candidate,
         'company' => letterTestCompany(),
         'includeAcknowledgement' => false,
     ])->render();
 
     expect($html)
-        ->toContain('LETTER OF INTENT')
-        ->toContain('Subject: Letter of Intent for Employment')
+        ->toContain('CONDITIONAL OFFER LETTER')
+        ->toContain('(Subject to Verification, Compliance and Final Appointment)')
+        ->toContain('LOI-2026-00012')
+        ->toContain('Mobile: 9876543210')
+        ->toContain('Subject: Conditional Offer of Employment')
         ->toContain('Dear Adarsh Bairagi,')
-        ->toContain('CTC will be Rs. 13,991/-.')
-        ->toContain('In-Hand Salary after applicable PF and ESIC deductions will be Rs. 12,171/-')
-        ->toContain('Date of Joining (DOJ) is 15 July 2026')
-        ->toContain('2. Pre-Joining Conditions')
-        ->toContain('3. Documents Required on DOJ')
-        ->toContain('4. General Terms &amp; Conditions')
-        ->toContain('Employee Declaration')
-        ->toContain('Warm Regards,')
-        ->toContain('HR Department')
-        ->toContain('Mangal City Mall');
+        ->toContain('1. POSITION OFFERED')
+        ->toContain('Department:</span> Customer Support')
+        ->toContain('Reporting To:</span> Support Manager')
+        ->toContain('3. PRE-EMPLOYMENT CONDITIONS')
+        ->toContain('(z) any additional requirement prescribed by the Company.')
+        ->toContain('10. PROPOSED COMPENSATION')
+        ->toContain('₹ 1,67,892')
+        ->toContain('₹ 12,171')
+        ->toContain('seven (7) calendar days')
+        ->toContain('15 July 2026')
+        ->toContain('on or before 13 July 2026')
+        ->toContain('21. CANDIDATE DECLARATION')
+        ->toContain('For AIRVINCIBLE')
+        ->toContain('Sumit Arora')
+        ->toContain('Candidate Acceptance')
+        // Drafting notes in the Word template are not part of the letter.
+        ->not->toContain('This wording ensures')
+        ->not->toContain('Letter of Intent');
+});
+
+test('the acknowledged intent letter shows the candidate signature block', function () {
+    $letter = new CandidateIntentLetter([
+        'letter_number' => 'LOI-2026-00013',
+        'position_title' => 'Advisor',
+        'work_location' => 'Indore',
+        'monthly_ctc' => 13991,
+        'monthly_in_hand' => 12171,
+        'acknowledgement_name' => 'Adarsh Bairagi',
+        'acknowledgement_text' => 'Recorded consent text.',
+    ]);
+    $letter->letter_date = Carbon::parse('2026-07-10');
+    $letter->joining_date = Carbon::parse('2026-07-15');
+    $letter->acknowledged_at = Carbon::parse('2026-07-11 10:30');
+
+    $html = view('pdf.recruitment.intent-letter', [
+        'letter' => $letter,
+        'candidate' => letterTestCandidate(),
+        'company' => letterTestCompany(),
+        'includeAcknowledgement' => true,
+    ])->render();
+
+    expect($html)
+        ->toContain('<span class="signed">Adarsh Bairagi</span>')
+        ->toContain('11 July 2026, 10:30 AM')
+        ->toContain('Recorded consent text.');
 });

@@ -46,6 +46,8 @@ class CandidateIntentLetterController extends Controller
             'defaults' => [
                 'position_title' => $candidate->final_designation
                     ?: $candidate->position_applied,
+                'department' => '',
+                'reporting_to' => '',
                 'work_location' => $candidate->branch?->name ?? '',
                 'monthly_ctc' => $candidate->final_ctc_offered ?? '',
                 'monthly_in_hand' => $candidate->final_in_hand_offered ?? '',
@@ -120,6 +122,8 @@ class CandidateIntentLetterController extends Controller
             ],
             'defaults' => [
                 'position_title' => $candidateIntentLetter->position_title,
+                'department' => $candidateIntentLetter->department,
+                'reporting_to' => $candidateIntentLetter->reporting_to,
                 'work_location' => $candidateIntentLetter->work_location,
                 'monthly_ctc' => $candidateIntentLetter->monthly_ctc,
                 'monthly_in_hand' => $candidateIntentLetter->monthly_in_hand,
@@ -177,6 +181,8 @@ class CandidateIntentLetterController extends Controller
                 'letter_number' => $candidateIntentLetter->letter_number,
                 'status' => $candidateIntentLetter->status,
                 'position_title' => $candidateIntentLetter->position_title,
+                'department' => $candidateIntentLetter->department,
+                'reporting_to' => $candidateIntentLetter->reporting_to,
                 'work_location' => $candidateIntentLetter->work_location,
                 'monthly_ctc' => (float) $candidateIntentLetter->monthly_ctc,
                 'monthly_in_hand' => (float) $candidateIntentLetter->monthly_in_hand,

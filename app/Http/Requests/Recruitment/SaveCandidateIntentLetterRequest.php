@@ -15,6 +15,8 @@ class SaveCandidateIntentLetterRequest extends FormRequest
     {
         return [
             'position_title' => ['required', 'string', 'max:255'],
+            'department' => ['required', 'string', 'max:255'],
+            'reporting_to' => ['required', 'string', 'max:255'],
             'work_location' => ['required', 'string', 'max:255'],
             'monthly_ctc' => ['required', 'numeric', 'min:0', 'max:9999999999.99'],
             'monthly_in_hand' => ['required', 'numeric', 'min:0', 'max:9999999999.99'],
