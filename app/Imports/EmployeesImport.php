@@ -156,7 +156,6 @@ class EmployeesImport implements ToCollection, WithHeadingRow, WithValidation, S
                     'can_interview' => $this->toBoolean($row['can_interview'] ?? 'no'),
                     'is_active' => true,
                     'employment_status' => 'active',
-                    'email_verified_at' => now(),
                 ]);
 
                 Log::info("User created", ['id' => $employee->id, 'email' => $employee->email]);

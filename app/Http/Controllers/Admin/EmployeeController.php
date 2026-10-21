@@ -109,7 +109,6 @@ class EmployeeController extends Controller
             'can_interview' => $data['can_interview'] ?? false,
             'is_active' => true,
             'employment_status' => 'active',
-            'email_verified_at' => now(),
         ]);
 
         $employee->syncRoles($data['roles']);

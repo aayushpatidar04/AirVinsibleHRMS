@@ -3,7 +3,12 @@ import AuthLayout from '@/Layouts/AuthLayout.vue'
 import AuthField from '@/Components/Auth/AuthField.vue'
 import { useForm, Link, Head } from '@inertiajs/vue3'
 
-defineProps({ canResetPassword: Boolean, status: String })
+const props = defineProps({ canResetPassword: Boolean, status: String })
+const statusMessages = {
+    'verification-link-sent': 'A verification link has been sent to your email address.',
+    'email-verified': 'Your email address has been verified. You can now sign in.',
+    'email-already-verified': 'Your email address is already verified. You can sign in.',
+}
 
 const form = useForm({ email: '', password: '', remember: false })
 const submit = () => form.post(route('login'), { onFinish: () => form.reset('password') })
@@ -13,7 +18,9 @@ const submit = () => form.post(route('login'), { onFinish: () => form.reset('pas
     <Head title="Sign in — Airvincible HRMS" />
 
     <AuthLayout title="Sign in to your account" subtitle="Use your work email to open the dashboard." icon="lock" aside>
-        <div v-if="status" class="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{{ status }}</div>
+        <div v-if="status" class="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {{ statusMessages[status] || status }}
+        </div>
 
         <form @submit.prevent="submit" class="space-y-5">
             <AuthField v-model="form.email" label="Email address" type="email" autocomplete="email"
