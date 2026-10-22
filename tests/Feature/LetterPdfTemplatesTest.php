@@ -58,14 +58,18 @@ test('logo and signature helpers return null when files are missing', function (
     expect(LetterHelper::signaturePath())->toBeNull();
 });
 
-test('the offer letter follows the new format', function () {
-    $offer = new CandidateOffer([
-        'offer_number' => 'OFR-1',
+function appointmentOffer(array $attributes = []): CandidateOffer
+{
+    $offer = new CandidateOffer(array_merge([
+        'offer_number' => 'OFR-2026-0007',
         'version' => 1,
         'status' => 'approved',
         'designation' => 'Advisor',
+        'department' => 'Customer Support',
+        'probation_months' => 6,
+        'reporting_time' => '10:00:00',
         'work_location' => 'Airvincible, 401, 4th Floor Workie Tech Park A.B. Road, Indore M.P.',
-    ]);
+    ], $attributes));
     $offer->joining_date = Carbon::parse('2026-07-15');
 
     $component = fn (string $name, string $type, float $amount) => new OfferSalaryComponent([
@@ -88,59 +92,95 @@ test('the offer letter follows the new format', function () {
     ]));
     $offer->setRelation('branch', null);
 
-    $html = view('pdf.recruitment.offer-letter', [
+    return $offer;
+}
+
+function renderAppointment(CandidateOffer $offer, ?Candidate $candidate = null): string
+{
+    return view('pdf.recruitment.offer-letter', [
         'offer' => $offer,
-        'candidate' => letterTestCandidate(),
+        'candidate' => $candidate ?? letterTestCandidate(),
         'salarySummary' => [],
         'company' => letterTestCompany(),
     ])->render();
+}
+
+test('the offer letter follows the appointment letter format', function () {
+    $candidate = letterTestCandidate();
+    $candidate->phone = '9876543210';
+
+    $html = renderAppointment(appointmentOffer(), $candidate);
 
     expect($html)
-        ->toContain('Offer Letter,')
-        ->toContain('Subject: <span class="bold">Offer of Employment</span>')
-        ->toContain('Dear <span class="bold">Adarsh Bairagi</span>')
+        ->toContain('APPOINTMENT LETTER')
+        ->toContain('PART – I')
+        ->toContain('Appointment, Employment Terms, Position, Probation &amp; General Conditions')
+        ->toContain('OFR-2026-0007')
+        ->toContain('Mr./Ms. Adarsh Bairagi')
+        ->toContain('Email: adarsh@example.test')
+        ->toContain('Mobile No.: 9876543210')
+        ->toContain('Subject: Appointment as Advisor')
+        ->toContain('Dear Mr./Ms. Adarsh Bairagi,')
+        ->toContain('Customer Support Department')
+        ->toContain("15\u{00A0}/\u{00A0}07\u{00A0}/\u{00A0}2026")
         ->toContain('Indore M.P.')
-        ->toContain('Gross Total (A)')
-        ->toContain('1,56,000')
-        ->toContain('Take Home')
-        ->toContain('12,171')
-        ->toContain('Total Retirals (B)')
-        ->toContain('Total CTC')
-        ->toContain('13,991')
-        ->toContain('Wednesday, July 15, 2026')
-        ->toContain('2. Documents Required on DOJ')
-        ->toContain('3. General Terms')
-        ->toContain('HUMAN RESOURCE POLICIES')
-        ->toContain('10. Zero Tolerance Policy')
-        ->toContain('Employee Declaration')
+        ->toContain('probation for six (6) months')
+        ->toContain('10:00 AM')
+        ->toContain('1. APPOINTMENT')
+        ->toContain('14. COMPENSATION')
+        ->toContain('19.4 Attendance Manipulation')
+        ->toContain('39. POST-EMPLOYMENT OBLIGATIONS')
+        ->toContain('46. EMPLOYEE DECLARATION')
+        ->toContain('FOR AIRVINCIBLE')
         ->toContain('Sumit Arora')
         ->toContain('Talent Acquisition Head')
+        ->toContain('WITNESS – 2')
+        ->toContain('ANNEXURE – A')
+        ->toContain('Gross Total (A)')
+        ->toContain('1,56,000')
+        ->toContain('12,171')
+        ->toContain('Total CTC')
+        ->toContain('13,991')
         ->toContain('Mangal City Mall')
         ->not->toContain('DRAFT');
 });
 
-test('draft offers keep the draft watermark and custom terms replace the defaults', function () {
-    $offer = new CandidateOffer([
-        'offer_number' => 'OFR-2',
-        'version' => 1,
-        'status' => 'draft',
-        'designation' => 'Advisor',
-        'offer_terms' => 'Custom term for this offer only.',
-    ]);
-    $offer->setRelation('salaryComponents', collect());
-    $offer->setRelation('branch', null);
+test('fields the offer does not carry stay as blank lines', function () {
+    $offer = appointmentOffer(['department' => null, 'reporting_time' => null, 'probation_months' => null]);
+    $offer->joining_date = null;
 
-    $html = view('pdf.recruitment.offer-letter', [
-        'offer' => $offer,
-        'candidate' => letterTestCandidate(),
-        'salarySummary' => [],
-        'company' => letterTestCompany(),
-    ])->render();
+    $html = renderAppointment($offer, new Candidate(['first_name' => 'Asha', 'last_name' => 'Verma']));
+
+    expect($html)
+        ->toContain('Address: ______________________________________')
+        ->toContain('Working Hours:</span> __________')
+        ->toContain('Reporting Time:</span> ____________________')
+        ->toContain('____________________ Department')
+        ->toContain("___\u{00A0}/\u{00A0}___\u{00A0}/\u{00A0}20___")
+        ->toContain('Email: ____________________')
+        ->toContain('Employee ID:</span> ___________________________')
+        // The Word template says six months when the offer doesn't specify.
+        ->toContain('probation for six (6) months');
+});
+
+test('probation follows the months stored on the offer', function () {
+    expect(renderAppointment(appointmentOffer(['probation_months' => 3])))
+        ->toContain('probation for three (3) months');
+
+    expect(renderAppointment(appointmentOffer(['probation_months' => 1])))
+        ->toContain('probation for one (1) month</span>');
+});
+
+test('draft offers keep the draft watermark and extra terms move to the annexure', function () {
+    $html = renderAppointment(appointmentOffer([
+        'status' => 'draft',
+        'offer_terms' => 'Custom term for this offer only.',
+    ]));
 
     expect($html)
         ->toContain('DRAFT')
-        ->toContain('Custom term for this offer only.')
-        ->not->toContain('If failed to join on DOJ offer letter will be forfeited.');
+        ->toContain('Additional Terms')
+        ->toContain('Custom term for this offer only.');
 });
 
 test('the intent letter follows the conditional offer letter format', function () {
@@ -150,8 +190,6 @@ test('the intent letter follows the conditional offer letter format', function (
     $letter = new CandidateIntentLetter([
         'letter_number' => 'LOI-2026-00012',
         'position_title' => 'Advisor',
-        'department' => 'Customer Support',
-        'reporting_to' => 'Support Manager',
         'work_location' => 'Indore',
         'monthly_ctc' => 13991,
         'monthly_in_hand' => 12171,
@@ -174,8 +212,6 @@ test('the intent letter follows the conditional offer letter format', function (
         ->toContain('Subject: Conditional Offer of Employment')
         ->toContain('Dear Adarsh Bairagi,')
         ->toContain('1. POSITION OFFERED')
-        ->toContain('Department:</span> Customer Support')
-        ->toContain('Reporting To:</span> Support Manager')
         ->toContain('3. PRE-EMPLOYMENT CONDITIONS')
         ->toContain('(z) any additional requirement prescribed by the Company.')
         ->toContain('10. PROPOSED COMPENSATION')

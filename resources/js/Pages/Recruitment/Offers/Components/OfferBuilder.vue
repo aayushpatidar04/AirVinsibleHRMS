@@ -21,7 +21,7 @@ import {
     Minimize2,
 } from "lucide-vue-next";
 
-import { Link, router, useForm } from "@inertiajs/vue3";
+import { Link, router, useForm, usePage } from "@inertiajs/vue3";
 
 import CandidateSummary from "./CandidateSummary.vue";
 import EmploymentCard from "./EmploymentCard.vue";
@@ -70,6 +70,12 @@ const props = defineProps({
         default: () => ({}),
     },
 });
+
+const page = usePage();
+
+const isAdmin = computed(() =>
+    page.props.auth?.roles?.includes('admin')
+);
 
 const showValidationSummary = ref(true);
 const isFullScreen = ref(false);
@@ -805,7 +811,7 @@ watch(
                     </button>
 
                     <button
-                        v-if="isEdit && canSubmitForApproval"
+                        v-if="isEdit && canSubmitForApproval && !isAdmin"
                         type="button"
                         class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
                         :disabled="
