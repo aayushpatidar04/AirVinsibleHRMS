@@ -1,36 +1,90 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 
 const page = usePage()
-const visible = ref(false)
-const msg = ref({ type: '', text: '' })
+const message = ref(null)
+let dismissTimeout
+
+const validationMessages = (errors) =>
+    Object.values(errors ?? {}).flatMap((error) =>
+        (Array.isArray(error) ? error : [error]).filter(
+            (message) => typeof message === 'string' && message.length > 0,
+        ),
+    )
 
 watch(
-    () => page.props.flash,
-    (flash) => {
-        if (flash?.success) { msg.value = { type: 'success', text: flash.success }; visible.value = true }
-        if (flash?.error) { msg.value = { type: 'error', text: flash.error }; visible.value = true }
-        if (visible.value) setTimeout(() => (visible.value = false), 4000)
+    () => [page.props.flash, page.props.errors],
+    ([flash, errors]) => {
+        clearTimeout(dismissTimeout)
+
+        if (flash?.success) {
+            message.value = { type: 'success', text: flash.success, errors: [] }
+        } else if (flash?.error) {
+            message.value = { type: 'error', text: flash.error, errors: [] }
+        } else {
+            const messages = validationMessages(errors)
+            message.value = messages.length
+                ? { type: 'validation', text: 'Please correct the following errors:', errors: messages }
+                : null
+        }
+
+        if (message.value) {
+            dismissTimeout = setTimeout(() => {
+                message.value = null
+            }, 5000)
+        }
     },
-    { immediate: true, deep: true }
+    { immediate: true, deep: true },
 )
+
+onUnmounted(() => clearTimeout(dismissTimeout))
 </script>
 
 <template>
     <Transition name="slide">
-        <div v-if="visible" :class="[
-            'fixed top-4 right-4 z-50 max-w-sm w-full rounded-lg shadow-lg p-4 flex items-start gap-3',
-            msg.type === 'success' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-        ]">
-            <div :class="msg.type === 'success' ? 'text-green-500' : 'text-red-500'" class="text-xl leading-none">
-                {{ msg.type === 'success' ? '✓' : '✕' }}
+        <div
+            v-if="message"
+            role="alert"
+            aria-live="assertive"
+            :class="[
+                'fixed right-4 top-4 z-50 flex w-full max-w-sm items-start gap-3 rounded-lg border p-4 shadow-lg',
+                message.type === 'success'
+                    ? 'border-green-200 bg-green-50'
+                    : 'border-red-200 bg-red-50',
+            ]"
+        >
+            <div
+                :class="message.type === 'success' ? 'text-green-500' : 'text-red-500'"
+                class="text-xl leading-none"
+                aria-hidden="true"
+            >
+                {{ message.type === 'success' ? '✓' : '✕' }}
             </div>
-            <p :class="msg.type === 'success' ? 'text-green-800' : 'text-red-800'" class="text-sm font-medium">
-                {{ msg.text }}
-            </p>
-            <button @click="visible = false"
-                class="ml-auto text-gray-400 hover:text-gray-600 text-lg leading-none">×</button>
+            <div class="min-w-0 flex-1">
+                <p
+                    :class="message.type === 'success' ? 'text-green-800' : 'text-red-800'"
+                    class="text-sm font-medium"
+                >
+                    {{ message.text }}
+                </p>
+                <ul
+                    v-if="message.errors.length"
+                    class="mt-2 list-inside list-disc space-y-1 text-sm text-red-800"
+                >
+                    <li v-for="(error, index) in message.errors" :key="`${index}-${error}`">
+                        {{ error }}
+                    </li>
+                </ul>
+            </div>
+            <button
+                type="button"
+                class="ml-auto text-lg leading-none text-gray-400 hover:text-gray-600"
+                aria-label="Dismiss message"
+                @click="message = null"
+            >
+                ×
+            </button>
         </div>
     </Transition>
 </template>

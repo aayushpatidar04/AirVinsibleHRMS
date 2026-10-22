@@ -1,7 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
 
-import FlashMessage from "@/Components/Common/FlashMessage.vue";
 import AppSidebar from "@/Layouts/Partials/AppSidebar.vue";
 import AppHeader from "@/Layouts/Partials/AppHeader.vue";
 
@@ -18,8 +17,6 @@ const configuration = computed(
 
 <template>
     <div class="flex min-h-screen bg-paper">
-        <FlashMessage />
-
         <Transition enter-active-class="transition-opacity duration-300" enter-from-class="opacity-0"
             leave-active-class="transition-opacity duration-200" leave-to-class="opacity-0">
             <div v-if="sideOpen" class="fixed inset-0 z-30 bg-ink/40 backdrop-blur-sm md:hidden"
