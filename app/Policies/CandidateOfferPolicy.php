@@ -327,7 +327,7 @@ class CandidateOfferPolicy
             $user->hasAnyRole([
                 'Super Admin',
                 'Admin',
-                'HR',
+                'HR Recruiter',
                 'HR Manager',
             ])
         ) {

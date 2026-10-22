@@ -31,7 +31,7 @@ class CandidatePolicy
         }
 
         if (
-            $user->hasRole('hr')
+            $user->hasRole('hr_recruiter')
             && $user->can('candidates.view-branch')
         ) {
             return $user->canAccessBranch($candidate->branch_id);

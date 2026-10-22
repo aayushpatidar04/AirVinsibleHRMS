@@ -262,7 +262,7 @@ class Candidate extends Model
         }
 
         if (
-            $user->hasRole('hr')
+            $user->hasRole('hr_recruiter')
             && $user->can('candidates.view-branch')
         ) {
             return $query->where('branch_id', $user->branch_id);

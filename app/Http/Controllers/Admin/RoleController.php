@@ -23,7 +23,7 @@ class RoleController extends Controller
      */
     private const SYSTEM_ROLES = [
         'admin',
-        'hr',
+        'hr_recruiter',
         'interviewer',
         'employee',
     ];
@@ -42,7 +42,7 @@ class RoleController extends Controller
                 "
                 CASE name
                     WHEN 'admin' THEN 1
-                    WHEN 'hr' THEN 2
+                    WHEN 'hr_recruiter' THEN 2
                     WHEN 'interviewer' THEN 3
                     WHEN 'employee' THEN 4
                     ELSE 5

@@ -67,7 +67,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         return match ($user->primaryRole()) {
             'admin' => redirect()->route('admin.dashboard'),
-            'hr' => redirect()->route('hr.dashboard'),
+            'hr_recruiter' => redirect()->route('hr.dashboard'),
             'interviewer' => redirect()->route('interviewer.dashboard'),
             default => redirect()->route('profile.edit'),
         };
@@ -532,7 +532,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         });
 
-    Route::prefix('hr')
+    Route::prefix('hr_recruiter')
         ->name('hr.')
         ->middleware('permission:dashboard.hr.view')
         ->group(function () {

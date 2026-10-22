@@ -28,7 +28,7 @@ class InterviewSchedulePolicy
         }
 
         if (
-            $user->hasRole('hr')
+            $user->hasRole('hr_recruiter')
             && $user->can('interviews.view-branch')
         ) {
             return $user->canAccessBranch(

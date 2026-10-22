@@ -38,7 +38,7 @@ class RolePermissionSeeder extends Seeder
 
         $roles = [
             'admin',
-            'hr',
+            'hr_recruiter',
             'interviewer',
             'employee',
         ];
@@ -406,7 +406,7 @@ class RolePermissionSeeder extends Seeder
      */
     private function assignHrPermissions(): void
     {
-        $hr = Role::findByName('hr', $this->guardName);
+        $hr = Role::findByName('hr_recruiter', $this->guardName);
 
         $hr->syncPermissions([
             'dashboard.hr.view',

@@ -13,7 +13,7 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         // Ensure roles exist
-        foreach (['admin','interviewer','hr','employee'] as $r) {
+        foreach (['admin','interviewer','hr_recruiter','employee'] as $r) {
             Role::firstOrCreate(['name' => $r, 'guard_name' => 'web']);
         }
 
@@ -58,7 +58,7 @@ class UserSeeder extends Seeder
             'can_interview'     => true,
             'email_verified_at' => now(),
         ]);
-        $hr->syncRoles(['hr','interviewer']);
+        $hr->syncRoles(['hr_recruiter','interviewer']);
 
         /* ── 3. Employees who are also interviewers ── */
         $interviewers = [
@@ -114,7 +114,7 @@ class UserSeeder extends Seeder
                 'designation' => 'HR Executive',
                 'department'  => 'Human Resources',
                 'branch'      => $jaipur,
-                'roles'       => ['hr', 'interviewer'],
+                'roles'       => ['hr_recruiter', 'interviewer'],
             ],
         ];
 

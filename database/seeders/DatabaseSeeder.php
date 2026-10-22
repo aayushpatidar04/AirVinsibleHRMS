@@ -328,7 +328,7 @@ class DatabaseSeeder extends Seeder
         * HR remains the user's primary operational role.
         * The can_interview flag allows the HR user to be allocated interview rounds.
         */
-        $hr->syncRoles(['hr']);
+        $hr->syncRoles(['hr_recruiter']);
 
         $this->command->info('HR created: hr@hrms.com / password');
 

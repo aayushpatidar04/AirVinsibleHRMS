@@ -187,7 +187,7 @@ test('branch filter narrows lists and the report for admins', function () {
 
 test('hr only sees their own branch and cannot widen it with a filter', function () {
     $fx = dashboardFixture();
-    $hr = dashboardUser('hr', $fx['indore']);
+    $hr = dashboardUser('hr_recruiter', $fx['indore']);
 
     $this->actingAs($hr)
         ->get(route('recruitment.interviews.dashboard', ['branch_id' => $fx['jaipur']->id]))

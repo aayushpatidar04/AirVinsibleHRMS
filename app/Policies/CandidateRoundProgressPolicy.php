@@ -21,7 +21,7 @@ class CandidateRoundProgressPolicy
         CandidateRoundProgress $progress
     ): bool {
         if (
-            $user->hasRole('hr')
+            $user->hasRole('hr_recruiter')
             && $user->can('interviews.view-branch')
         ) {
             return $user->canAccessBranch(
@@ -133,7 +133,7 @@ class CandidateRoundProgressPolicy
         /*
          * HR can access salary discussions for its own branch.
          */
-        return $user->hasRole('hr')
+        return $user->hasRole('hr_recruiter')
             && $user->canAccessBranch(
                 $progress->candidate->branch_id
             );

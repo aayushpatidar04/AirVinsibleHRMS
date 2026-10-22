@@ -186,7 +186,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function isHR(): bool
     {
-        return $this->hasRole('hr');
+        return $this->hasRole('hr_recruiter');
     }
 
     /**
@@ -199,7 +199,7 @@ class User extends Authenticatable implements MustVerifyEmail
          * Their interview eligibility is controlled through can_interview
          * and allowedRounds.
          */
-        if (!$this->hasAnyRole(['admin', 'hr'])) {
+        if (!$this->hasAnyRole(['admin', 'hr_recruiter'])) {
             $this->syncRoles(['interviewer']);
         }
 
@@ -258,7 +258,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return match (true) {
             $this->hasRole('admin') => 'admin',
-            $this->hasRole('hr') => 'hr',
+            $this->hasRole('hr_recruiter') => 'hr_recruiter',
             $this->hasRole('interviewer') || $this->can_interview => 'interviewer',
             default => 'employee',
         };

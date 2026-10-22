@@ -118,7 +118,7 @@ class CandidateRoundProgress extends Model
         }
 
         if (
-            $user->hasRole('hr')
+            $user->hasRole('hr_recruiter')
             && $user->can('interviews.view-branch')
         ) {
             return $query->whereHas(

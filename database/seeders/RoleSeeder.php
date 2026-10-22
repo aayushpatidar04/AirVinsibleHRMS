@@ -11,7 +11,7 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         // Roles
-        $roles = ['admin', 'interviewer', 'hr', 'employee'];
+        $roles = ['admin', 'interviewer', 'hr_recruiter', 'employee'];
         foreach ($roles as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         }
@@ -52,7 +52,7 @@ class RoleSeeder extends Seeder
             'interview.conduct',
         ]);
 
-        $hrRole = Role::findByName('hr');
+        $hrRole = Role::findByName('hr_recruiter');
         $hrRole->syncPermissions([
             'candidate.view', 'candidate.create', 'candidate.update-status',
             'interview.view-all',
