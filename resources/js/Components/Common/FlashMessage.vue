@@ -13,30 +13,32 @@ const validationMessages = (errors) =>
         ),
     )
 
+// Replace your existing watch block with this safely guarded version
 watch(
-    () => [page.props.flash, page.props.errors],
-    ([flash, errors]) => {
-        clearTimeout(dismissTimeout)
+  () => [page?.props?.flash, page?.props?.errors], // Added optional chaining here
+  ([flash, errors]) => {
+    clearTimeout(dismissTimeout)
+    
+    if (flash?.success) {
+      message.value = { type: 'success', text: flash.success, errors: [] }
+    } else if (flash?.error) {
+      message.value = { type: 'error', text: flash.error, errors: [] }
+    } else {
+      const messages = validationMessages(errors)
+      message.value = messages.length 
+        ? { type: 'validation', text: 'Please correct the following errors:', errors: messages } 
+        : null
+    }
 
-        if (flash?.success) {
-            message.value = { type: 'success', text: flash.success, errors: [] }
-        } else if (flash?.error) {
-            message.value = { type: 'error', text: flash.error, errors: [] }
-        } else {
-            const messages = validationMessages(errors)
-            message.value = messages.length
-                ? { type: 'validation', text: 'Please correct the following errors:', errors: messages }
-                : null
-        }
-
-        if (message.value) {
-            dismissTimeout = setTimeout(() => {
-                message.value = null
-            }, 5000)
-        }
-    },
-    { immediate: true, deep: true },
+    if (message.value) {
+      dismissTimeout = setTimeout(() => {
+        message.value = null
+      }, 5000)
+    }
+  },
+  { immediate: true, deep: true },
 )
+
 
 onUnmounted(() => clearTimeout(dismissTimeout))
 </script>

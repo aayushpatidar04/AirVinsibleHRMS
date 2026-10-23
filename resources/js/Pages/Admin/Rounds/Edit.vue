@@ -51,14 +51,14 @@ const submit = () => form.put(route('admin.rounds.update', props.round.id))
                         <input v-model="form.is_hr_round" type="checkbox" class="rounded text-orange-500"
                             @change="form.is_ops_round = form.is_hr_round ? false : form.is_ops_round" />
                         <span class="text-sm text-gray-700 font-medium text-orange-700">HR Round</span>
-                        <span class="text-xs text-gray-500">— Salary mandatory for TL/QA/AM/OM and Other profiles</span>
+                        <span class="text-xs text-gray-500">— Salary mandatory for Advisor/Executive profiles</span>
                     </label>
 
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input v-model="form.is_ops_round" type="checkbox" class="rounded text-blue-500"
                             @change="form.is_hr_round = form.is_ops_round ? false : form.is_hr_round" />
                         <span class="text-sm text-gray-700 font-medium text-blue-700">OPS Round</span>
-                        <span class="text-xs text-gray-500">— Capture an optional salary range for Advisor/Executive profiles</span>
+                        <span class="text-xs text-gray-500">— Capture an optional salary range for TL/QA/AM/OM and Other profiles</span>
                     </label>
 
                     <label class="flex items-center gap-2 cursor-pointer">

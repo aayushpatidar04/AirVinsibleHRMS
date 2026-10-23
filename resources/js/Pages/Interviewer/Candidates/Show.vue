@@ -53,12 +53,12 @@ const getRoundSchedule = (roundId) => {
             <!-- Salary Notice -->
             <div v-if="candidate.requires_salary_hr"
                 class="bg-orange-50 border border-orange-200 rounded-xl p-4 text-sm text-orange-800">
-                <strong>💰 TL/QA/AM/OM or Other Profile:</strong> Salary offer is <strong>mandatory</strong> when
+                <strong>📊 Advisor/Executive Profile:</strong> Salary offer is <strong>mandatory</strong> when
                 completing the HR round.
             </div>
             <div v-else-if="candidate.salary_post_ops"
                 class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
-                <strong>📊 Advisor/Executive Profile:</strong> Salary discussion takes place during the OPS round.
+                <strong>💰 TL/QA/AM/OM or Other Profile:</strong> Salary discussion takes place during the OPS round.
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

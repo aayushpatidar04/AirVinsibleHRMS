@@ -461,7 +461,7 @@ const minDateTime = computed(() => {
                 v-if="candidate.requires_salary_hr"
                 class="bg-orange-50 border border-orange-200 rounded-xl p-4 text-sm text-orange-800"
             >
-                <strong>💰 TL/QA/AM/OM or Other Profile:</strong> Salary offer
+                <strong>📊 Advisor/Executive Profile:</strong> Salary offer
                 is <strong>mandatory</strong> in the HR round for this
                 candidate.
                 <span v-if="candidate.latest_salary_offer">
@@ -501,7 +501,7 @@ const minDateTime = computed(() => {
                 v-else-if="candidate.salary_post_ops"
                 class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800"
             >
-                <strong>📊 Advisor/Executive Profile:</strong> Salary discussion
+                <strong>💰 TL/QA/AM/OM or Other Profile:</strong> Salary discussion
                 takes place during the OPS round.
                 <span v-if="candidate.latest_salary_offer">
                     Latest offer:

@@ -22,8 +22,8 @@ const pct = (count) => (props.stats.total_candidates > 0 ? (count / props.stats.
 
 const th = 'pb-3 text-xs font-semibold text-ink-mute'
 const profiles = computed(() => [
-    { label: 'Advisor / Executive', note: 'Salary range captured in OPS, finalised in HR', count: props.stats.candidates_by_profile.advisory_executive, box: 'bg-amber-50 border-amber-100', title: 'text-amber-800', sub: 'text-amber-600', num: 'text-amber-700' },
-    { label: 'TL / QA / AM / OM', note: 'Salary mandatory in HR round', count: props.stats.candidates_by_profile.leadership, box: 'bg-indigo-50 border-indigo-100', title: 'text-indigo-800', sub: 'text-indigo-600', num: 'text-indigo-700' },
+    { label: 'Advisor / Executive', note: 'Salary mandatory in HR round', count: props.stats.candidates_by_profile.advisory_executive, box: 'bg-amber-50 border-amber-100', title: 'text-amber-800', sub: 'text-amber-600', num: 'text-amber-700' },
+    { label: 'TL / QA / AM / OM', note: 'Salary range captured in OPS, finalised in HR', count: props.stats.candidates_by_profile.leadership, box: 'bg-indigo-50 border-indigo-100', title: 'text-indigo-800', sub: 'text-indigo-600', num: 'text-indigo-700' },
     { label: 'Other Profiles', note: 'Standard process', count: props.stats.candidates_by_profile.other, box: 'bg-slate-50 border-slate-100', title: 'text-slate-800', sub: 'text-slate-500', num: 'text-slate-700' },
 ])
 </script>

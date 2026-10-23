@@ -104,7 +104,7 @@ const submit = () => form.post(route("admin.rounds.store"));
                             <span class="font-medium text-orange-700"
                                 >HR Round</span
                             >
-                            — Salary mandatory for TL/QA/AM/OM and Other
+                            — Salary mandatory for Advisor/Executive
                             profiles
                         </span>
                     </label>
@@ -125,7 +125,7 @@ const submit = () => form.post(route("admin.rounds.store"));
                                 >OPS Round</span
                             >
                             — Capture an optional salary range for
-                            Advisor/Executive profiles
+                            TL / QA / AM / OM profiles
                         </span>
                     </label>
                 </div>
@@ -142,13 +142,12 @@ const submit = () => form.post(route("admin.rounds.store"));
                 >
                     <p v-if="form.is_hr_round">
                         <strong>💰 HR Round:</strong> Final salary offer is
-                        <strong>mandatory</strong> for TL/QA/AM/OM and Other
-                        profiles. Advisor/Executive profiles may receive a
+                        <strong>mandatory</strong> for Advisor/Executive. TL / QA / AM / OM and other profiles may receive a
                         salary range preview from OPS.
                     </p>
                     <p v-if="form.is_ops_round">
                         <strong>📊 OPS Round:</strong> Record a salary range for
-                        Advisor/Executive profiles if available.
+                        TL / QA / AM / OM and other profiles if available.
                     </p>
                     <div class="flex justify-end gap-3 pt-2 border-t">
                         <Link

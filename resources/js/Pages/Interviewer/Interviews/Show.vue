@@ -227,7 +227,7 @@ const submitComplete = () => {
         return;
     }
 
-    if (props.interview.is_ops_round) {
+    if (props.interview.is_ops_round && props.candidate.profile_category != 'Advisor / Executive') {
         if (
             completeForm.salary_offer_min === "" ||
             completeForm.salary_offer_min === null
@@ -974,7 +974,7 @@ const fieldTypeIcon = (type) => {
 
                 <!-- OPS Salary Recommendation -->
                 <div
-                    v-if="interview.is_ops_round"
+                    v-if="interview.is_ops_round && candidate.profile_category != 'Advisor / Executive'"
                     class="space-y-4 rounded-xl border border-blue-200 bg-blue-50 p-5"
                 >
                     <div>

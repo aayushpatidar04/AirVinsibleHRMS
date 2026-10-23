@@ -115,13 +115,13 @@ const removeOption = (i) => qForm.options.splice(i, 1)
                 class="rounded-xl border p-4 text-sm">
                 <p v-if="round.is_hr_round">
                     <strong>💰 Salary Offer Rules for this HR Round:</strong><br />
-                        • <strong>TL / QA / AM / OM</strong> and <strong>Other</strong> profiles — salary offer is
+                        • <strong>Advisor / Executive</strong> profiles — salary offer is
                         <strong>MANDATORY</strong>. Round cannot be completed without it.<br />
-                        • <strong>Advisor / Executive</strong> profiles — salary discussion happens in the OPS round.
+                        • <strong>TL / QA / AM / OM</strong> and <strong>Other</strong> profiles — salary discussion happens in the OPS round.
                 </p>
                 <p v-if="round.is_ops_round">
                     <strong>📊 Salary Discussion Rules for this OPS Round:</strong><br />
-                    • <strong>Advisor / Executive</strong> profiles — record a salary range in this OPS round if available.
+                    • <strong>TL / QA / AM / OM</strong> and <strong>Other</strong> profiles — record a salary range in this OPS round if available.
                 </p>
             </div>
 

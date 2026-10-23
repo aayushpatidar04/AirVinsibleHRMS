@@ -699,6 +699,8 @@ class InterviewController extends Controller
         $isOpsRound = (bool) $round->is_ops_round;
         $isHrRound = (bool) $round->is_hr_round;
 
+        $profileCategory = $candidate->profile_category;
+
         $data = $request->validate([
             'overall_feedback' => [
                 'required',
@@ -732,7 +734,7 @@ class InterviewController extends Controller
             ],
 
             'salary_offer_min' => [
-                ($isOpsRound || $isHrRound)
+                (($isOpsRound && $profileCategory != 'Advisor / Executive') || $isHrRound)
                 ? 'required'
                 : 'nullable',
                 'numeric',
@@ -740,7 +742,7 @@ class InterviewController extends Controller
             ],
 
             'salary_offer_max' => [
-                ($isOpsRound || $isHrRound)
+                (($isOpsRound && $profileCategory != 'Advisor / Executive') || $isHrRound)
                 ? 'required'
                 : 'nullable',
                 'numeric',
@@ -749,7 +751,7 @@ class InterviewController extends Controller
             ],
 
             'offered_designation' => [
-                $round->is_ops_round ? 'nullable' : 'nullable',
+               'nullable',
                 'string',
                 'max:255',
             ],
@@ -1161,7 +1163,7 @@ class InterviewController extends Controller
     private function getSalaryHint(InterviewRound $round, Candidate $candidate): string
     {
         if ($round->is_ops_round && $candidate->requiresSalaryInOpsRound()) {
-            return 'Record a salary range (minimum and maximum) for Advisor/Executive profiles in this OPS round when available.';
+            return 'Record a salary range (minimum and maximum) for TL / QA / AM / OM profiles in this OPS round when available.';
         }
 
         if ($round->is_hr_round && $candidate->requiresSalaryInHrRound()) {

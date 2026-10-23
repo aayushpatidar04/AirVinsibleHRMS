@@ -20,13 +20,13 @@ class Candidate extends Model
      * Profiles where salary discussion is mandatory in the OPS round.
      * Advisors & Executives must receive salary discussion/offering in the OPS round.
      */
-    const OPS_ROUND_SALARY_PROFILES = ['advisory_executive'];
+    const HR_ROUND_SALARY_PROFILES = ['advisory_executive'];
 
     /**
      * Profiles where salary discussion is mandatory in the HR round.
      * All other profiles must receive salary discussion/offering in the HR round.
      */
-    const HR_ROUND_SALARY_PROFILES = ['leadership', 'other'];
+    const OPS_ROUND_SALARY_PROFILES = ['leadership', 'other'];
 
     const PROFILE_LABELS = [
         'advisory_executive' => 'Advisor / Executive',
