@@ -4,9 +4,13 @@ use App\Models\CandidateIntentLetter;
 use App\Models\Branch;
 use App\Models\Candidate;
 use App\Models\User;
+use App\Mail\CandidateIntentLetterMail;
+use App\Services\Recruitment\CandidateIntentLetterDeliveryService;
+use App\Services\Recruitment\CandidateIntentLetterPdfService;
 use App\Policies\CandidateOfferPolicy;
 use App\Services\Recruitment\CandidateIntentLetterPortalTokenService;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Storage;
 
@@ -75,6 +79,51 @@ test('intent letter portal expiry accepts numeric environment strings', function
 
     expect($letter->fresh()->portal_token_expires_at->toDateString())
         ->toBe(now()->addDays(5)->toDateString());
+});
+
+test('intent letter delivery sends the candidate portal link and records sent status', function () {
+    Storage::fake('local');
+
+    $candidate = intentLetterTestCandidate();
+    $sender = User::query()->create([
+        'first_name' => 'HR',
+        'last_name' => 'Sender',
+        'email' => 'hr-sender@example.test',
+        'password' => Hash::make('password'),
+    ]);
+    $letter = CandidateIntentLetter::query()->create([
+        'candidate_id' => $candidate->id,
+        'status' => CandidateIntentLetter::STATUS_DRAFT,
+        'position_title' => 'Customer Support Executive',
+        'department' => 'Customer Support',
+        'reporting_to' => 'Support Manager',
+        'work_location' => 'Indore',
+        'monthly_ctc' => 25000,
+        'monthly_in_hand' => 22000,
+        'joining_date' => today()->addDays(10),
+        'letter_date' => today(),
+        'pdf_path' => 'recruitment/intent-letters/test/LOI-test.pdf',
+    ]);
+    Storage::disk('local')->put($letter->pdf_path, 'draft-pdf');
+    Mail::fake();
+
+    app(CandidateIntentLetterDeliveryService::class)->send(
+        $letter,
+        $sender->id,
+        app(CandidateIntentLetterPdfService::class),
+        app(CandidateIntentLetterPortalTokenService::class)
+    );
+
+    Mail::assertSent(CandidateIntentLetterMail::class);
+
+    expect($letter->fresh()->status)
+        ->toBe(CandidateIntentLetter::STATUS_SENT)
+        ->and($letter->fresh()->sent_to_email)
+        ->toBe($candidate->email)
+        ->and($letter->fresh()->sent_by)
+        ->toBe($sender->id)
+        ->and($letter->fresh()->portal_token_hash)
+        ->not->toBeNull();
 });
 
 test('candidate can acknowledge a sent intent letter and receive an acknowledged PDF', function () {

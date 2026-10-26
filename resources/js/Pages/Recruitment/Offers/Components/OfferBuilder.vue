@@ -79,35 +79,38 @@ const isAdmin = computed(() =>
 
 const showValidationSummary = ref(true);
 const isFullScreen = ref(false);
+const builderElement = ref(null);
 
-function toggleFullScreen() {
-    isFullScreen.value = !isFullScreen.value;
-}
+async function toggleFullScreen() {
+    try {
+        if (document.fullscreenElement === builderElement.value) {
+            await document.exitFullscreen();
+            return;
+        }
 
-function exitFullScreen() {
-    isFullScreen.value = false;
-}
-
-function handleFullScreenKeydown(event) {
-    if (event.key === "Escape" && isFullScreen.value) {
-        exitFullScreen();
+        await builderElement.value?.requestFullscreen();
+    } catch (error) {
+        console.error("Unable to toggle offer builder fullscreen:", error);
     }
 }
 
-watch(isFullScreen, (enabled) => {
-    document.body.classList.toggle("overflow-hidden", enabled);
+function syncFullScreenState() {
+    isFullScreen.value =
+        document.fullscreenElement === builderElement.value;
+}
 
-    if (enabled) {
-        window.addEventListener("keydown", handleFullScreenKeydown);
-    } else {
-        window.removeEventListener("keydown", handleFullScreenKeydown);
-    }
+onMounted(() => {
+    document.addEventListener("fullscreenchange", syncFullScreenState);
 });
 
 onBeforeUnmount(() => {
-    document.body.classList.remove("overflow-hidden");
+    document.removeEventListener("fullscreenchange", syncFullScreenState);
 
-    window.removeEventListener("keydown", handleFullScreenKeydown);
+    if (document.fullscreenElement === builderElement.value) {
+        document.exitFullscreen().catch((error) => {
+            console.error("Unable to exit offer builder fullscreen:", error);
+        });
+    }
 });
 
 const emit = defineEmits(["saved", "submitted"]);
@@ -705,10 +708,11 @@ watch(
 
 <template>
     <div
+        ref="builderElement"
         :class="[
             'bg-gray-50 transition-all duration-200',
             isFullScreen
-                ? 'fixed inset-0 z-[100] min-h-screen overflow-y-auto'
+                ? 'min-h-screen overflow-y-auto'
                 : 'min-h-screen',
         ]"
     >

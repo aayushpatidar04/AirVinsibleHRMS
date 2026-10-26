@@ -107,6 +107,18 @@ const completeForm = useForm({
     salary_offer_max: props.interview.salary_offer_max ?? "",
     offered_designation: props.interview.offered_designation ?? "",
     salary_offer_status: props.interview.salary_offer_status ?? "",
+    intent_letter: {
+        position_title:
+            props.interview.offered_designation ||
+            props.candidate.position ||
+            "",
+        department: "",
+        reporting_to: "",
+        work_location: props.candidate.branch || "",
+        monthly_ctc: props.interview.salary_offer_max ?? "",
+        monthly_in_hand: "",
+        joining_date: "",
+    },
     completion_action: props.interview.is_hr_round
         ? "mark_all_rounds_cleared"
         : "continue_to_next_round",
@@ -202,6 +214,10 @@ watch(
 
 const submitComplete = () => {
     completeForm.clearErrors();
+    const shouldCreateIntentLetter =
+        props.interview.is_hr_round &&
+        completeForm.completion_action === "mark_all_rounds_cleared" &&
+        completeForm.salary_offer_status === "accepted";
 
     if (
         completeForm.completion_action === "continue_to_next_round" &&
@@ -262,6 +278,31 @@ const submitComplete = () => {
             );
 
             return;
+        }
+    }
+
+    if (shouldCreateIntentLetter) {
+        const requiredIntentLetterFields = [
+            ["position_title", "Position offered is required."],
+            ["department", "Department is required."],
+            ["reporting_to", "Reporting contact is required."],
+            ["work_location", "Work location is required."],
+            ["monthly_ctc", "Monthly CTC is required."],
+            ["monthly_in_hand", "Monthly in-hand amount is required."],
+            ["joining_date", "Proposed joining date is required."],
+        ];
+
+        for (const [field, message] of requiredIntentLetterFields) {
+            if (
+                completeForm.intent_letter[field] === "" ||
+                completeForm.intent_letter[field] === null
+            ) {
+                completeForm.setError(
+                    `intent_letter.${field}`,
+                    message,
+                );
+                return;
+            }
         }
     }
 
@@ -397,6 +438,26 @@ const fieldTypeIcon = (type) => {
                             {{ candidate.profile_label }}
                         </p>
                     </div>
+                </div>
+
+                <div
+                    v-if="
+                        candidate.final_status === 'selected' ||
+                        candidate.intent_letter
+                    "
+                    class="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900"
+                >
+                    <span>
+                        Selection:
+                        <strong>{{ candidate.final_status }}</strong>
+                    </span>
+                    <span v-if="candidate.intent_letter">
+                        Letter of Intent:
+                        <strong>{{ candidate.intent_letter.status }}</strong>
+                        <span v-if="candidate.intent_letter.letter_number">
+                            ({{ candidate.intent_letter.letter_number }})
+                        </span>
+                    </span>
                 </div>
                 <div class="flex gap-2 flex-wrap">
                     <span
@@ -1399,10 +1460,175 @@ const fieldTypeIcon = (type) => {
                     <div
                         class="rounded-lg border border-orange-200 bg-white/70 p-3 text-xs leading-5 text-orange-800"
                     >
-                        HR/Admin will review both the OPS recommendation and the
-                        HR salary discussion before approving the final CTC,
-                        in-hand salary, PF and designation.
+                        If the candidate accepts and all rounds are cleared,
+                        complete the Letter of Intent details below. The
+                        candidate will be selected and the letter sent directly.
                     </div>
+                </div>
+
+                <div
+                    v-if="
+                        interview.is_hr_round &&
+                        completeForm.completion_action ===
+                            'mark_all_rounds_cleared' &&
+                        completeForm.salary_offer_status === 'accepted'
+                    "
+                    class="space-y-4 rounded-xl border border-green-200 bg-green-50 p-5"
+                >
+                    <div>
+                        <h3 class="font-semibold text-green-900">
+                            Letter of Intent Details
+                        </h3>
+                        <p class="mt-1 text-sm text-green-800">
+                            These details will be used to create and email the
+                            preliminary Letter of Intent. Formal offer details
+                            can be completed later.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                            <label class="label">
+                                Position Offered
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                v-model="completeForm.intent_letter.position_title"
+                                type="text"
+                                maxlength="255"
+                                class="input-field"
+                            />
+                            <p
+                                v-if="completeForm.errors['intent_letter.position_title']"
+                                class="error"
+                            >
+                                {{ completeForm.errors["intent_letter.position_title"] }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="label">
+                                Department
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                v-model="completeForm.intent_letter.department"
+                                type="text"
+                                maxlength="255"
+                                class="input-field"
+                            />
+                            <p
+                                v-if="completeForm.errors['intent_letter.department']"
+                                class="error"
+                            >
+                                {{ completeForm.errors["intent_letter.department"] }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="label">
+                                Reporting To
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                v-model="completeForm.intent_letter.reporting_to"
+                                type="text"
+                                maxlength="255"
+                                class="input-field"
+                            />
+                            <p
+                                v-if="completeForm.errors['intent_letter.reporting_to']"
+                                class="error"
+                            >
+                                {{ completeForm.errors["intent_letter.reporting_to"] }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="label">
+                                Work Location
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                v-model="completeForm.intent_letter.work_location"
+                                type="text"
+                                maxlength="255"
+                                class="input-field"
+                            />
+                            <p
+                                v-if="completeForm.errors['intent_letter.work_location']"
+                                class="error"
+                            >
+                                {{ completeForm.errors["intent_letter.work_location"] }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="label">
+                                Monthly CTC (₹)
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                v-model="completeForm.intent_letter.monthly_ctc"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                class="input-field"
+                            />
+                            <p
+                                v-if="completeForm.errors['intent_letter.monthly_ctc']"
+                                class="error"
+                            >
+                                {{ completeForm.errors["intent_letter.monthly_ctc"] }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="label">
+                                Monthly In-Hand (₹)
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                v-model="completeForm.intent_letter.monthly_in_hand"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                class="input-field"
+                            />
+                            <p
+                                v-if="completeForm.errors['intent_letter.monthly_in_hand']"
+                                class="error"
+                            >
+                                {{ completeForm.errors["intent_letter.monthly_in_hand"] }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="label">
+                                Proposed Date of Joining
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <input
+                                v-model="completeForm.intent_letter.joining_date"
+                                type="date"
+                                :min="new Date().toISOString().slice(0, 10)"
+                                class="input-field"
+                            />
+                            <p
+                                v-if="completeForm.errors['intent_letter.joining_date']"
+                                class="error"
+                            >
+                                {{ completeForm.errors["intent_letter.joining_date"] }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <p
+                        v-if="completeForm.errors.intent_letter"
+                        class="error"
+                    >
+                        {{ completeForm.errors.intent_letter }}
+                    </p>
                 </div>
 
                 <!-- HR Completion Decision -->
@@ -1472,8 +1698,8 @@ const fieldTypeIcon = (type) => {
 
                             <p class="mt-1 text-sm text-gray-500">
                                 Complete the HR round and close the interview
-                                process. Final salary will be approved
-                                separately.
+                                process. An accepted candidate can be selected
+                                and sent a Letter of Intent here.
                             </p>
                         </div>
                     </label>
@@ -1626,7 +1852,10 @@ const fieldTypeIcon = (type) => {
                             : interview.is_hr_round &&
                                 completeForm.completion_action ===
                                     "mark_all_rounds_cleared"
-                              ? "✓ Complete All Rounds"
+                              ? completeForm.salary_offer_status ===
+                                "accepted"
+                                  ? "✓ Complete, Select & Send Letter"
+                                  : "✓ Complete All Rounds"
                               : "✓ Complete & Assign Next Round"
                     }}
                 </button>

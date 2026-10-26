@@ -4,14 +4,13 @@ namespace App\Http\Controllers\Recruitment;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Recruitment\SaveCandidateIntentLetterRequest;
-use App\Mail\CandidateIntentLetterMail;
 use App\Models\Candidate;
 use App\Models\CandidateIntentLetter;
+use App\Services\Recruitment\CandidateIntentLetterDeliveryService;
 use App\Services\Recruitment\CandidateIntentLetterPdfService;
 use App\Services\Recruitment\CandidateIntentLetterPortalTokenService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -234,6 +233,7 @@ class CandidateIntentLetterController extends Controller
 
     public function send(
         CandidateIntentLetter $candidateIntentLetter,
+        CandidateIntentLetterDeliveryService $deliveryService,
         CandidateIntentLetterPdfService $pdfService,
         CandidateIntentLetterPortalTokenService $tokenService
     ): RedirectResponse {
@@ -252,27 +252,12 @@ class CandidateIntentLetterController extends Controller
         }
 
         try {
-            if (
-                !$candidateIntentLetter->pdf_path ||
-                !Storage::disk('local')->exists($candidateIntentLetter->pdf_path)
-            ) {
-                $pdfService->generate($candidateIntentLetter);
-            }
-
-            $token = $tokenService->issue($candidateIntentLetter);
-            $portalUrl = route('candidate-intent-letters.portal.show', $token);
-
-            Mail::to($candidateIntentLetter->candidate->email)->send(
-                new CandidateIntentLetterMail($candidateIntentLetter, $portalUrl)
+            $deliveryService->send(
+                $candidateIntentLetter,
+                request()->user()->id,
+                $pdfService,
+                $tokenService
             );
-
-            $candidateIntentLetter->forceFill([
-                'status' => CandidateIntentLetter::STATUS_SENT,
-                'sent_to_email' => $candidateIntentLetter->candidate->email,
-                'sent_at' => now(),
-                'sent_by' => request()->user()->id,
-                'send_count' => $candidateIntentLetter->send_count + 1,
-            ])->save();
 
             return back()->with('success', 'Letter of Intent sent to the candidate.');
         } catch (Throwable $exception) {

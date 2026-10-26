@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Interviewer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Candidate;
+use App\Models\CandidateIntentLetter;
 use App\Models\CandidateRoundCustomQuestion;
 use App\Models\CandidateRoundProgress;
 use App\Models\InterviewRound;
@@ -11,6 +12,9 @@ use App\Models\Question;
 use App\Models\Response;
 use App\Models\User;
 use App\Notifications\RoundAssigned;
+use App\Services\Recruitment\CandidateIntentLetterDeliveryService;
+use App\Services\Recruitment\CandidateIntentLetterPdfService;
+use App\Services\Recruitment\CandidateIntentLetterPortalTokenService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -415,6 +419,19 @@ class InterviewController extends Controller
                     'completed_rounds' =>
                         $candidate
                             ->completedRoundsCount(),
+
+                    'final_status' =>
+                        $candidate->final_status,
+
+                    'intent_letter' =>
+                        $candidate->latestIntentLetter
+                            ? [
+                                'letter_number' =>
+                                    $candidate->latestIntentLetter->letter_number,
+                                'status' =>
+                                    $candidate->latestIntentLetter->status,
+                            ]
+                            : null,
                 ],
 
                 'interview' => [
@@ -700,6 +717,10 @@ class InterviewController extends Controller
         $isHrRound = (bool) $round->is_hr_round;
 
         $profileCategory = $candidate->profile_category;
+        $requiresIntentLetter =
+            $isHrRound
+            && $request->input('completion_action') === 'mark_all_rounds_cleared'
+            && $request->input('salary_offer_status') === 'accepted';
 
         $data = $request->validate([
             'overall_feedback' => [
@@ -772,6 +793,50 @@ class InterviewController extends Controller
                 'nullable',
                 'string',
             ],
+
+            'intent_letter.position_title' => [
+                $requiresIntentLetter ? 'required' : 'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'intent_letter.department' => [
+                $requiresIntentLetter ? 'required' : 'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'intent_letter.reporting_to' => [
+                $requiresIntentLetter ? 'required' : 'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'intent_letter.work_location' => [
+                $requiresIntentLetter ? 'required' : 'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'intent_letter.monthly_ctc' => [
+                $requiresIntentLetter ? 'required' : 'nullable',
+                'numeric',
+                'min:0',
+                'max:9999999999.99',
+            ],
+
+            'intent_letter.monthly_in_hand' => [
+                $requiresIntentLetter ? 'required' : 'nullable',
+                'numeric',
+                'min:0',
+                'max:9999999999.99',
+            ],
+
+            'intent_letter.joining_date' => [
+                $requiresIntentLetter ? 'required' : 'nullable',
+                'date',
+                'after_or_equal:today',
+            ],
         ]);
 
         $isHrRound = (bool) $round->is_hr_round;
@@ -805,6 +870,13 @@ class InterviewController extends Controller
             return back()->withErrors([
                 'completion_action' =>
                     'Only HR can mark all interview rounds as cleared.',
+            ]);
+        }
+
+        if ($requiresIntentLetter && !filled($candidate->email)) {
+            return back()->withErrors([
+                'intent_letter' =>
+                    'A candidate email address is required to send the Letter of Intent.',
             ]);
         }
 
@@ -886,9 +958,10 @@ class InterviewController extends Controller
         }
 
         $nextProgress = null;
+        $intentLetter = null;
 
         // ── Complete this round ──
-        DB::transaction(function () use ($progress, $candidate, $data, $isOpsRound, $isHrRound, $nextRound, $nextInterviewer, &$nextProgress) {
+        DB::transaction(function () use ($progress, $candidate, $data, $isOpsRound, $isHrRound, $requiresIntentLetter, $nextRound, $nextInterviewer, &$nextProgress, &$intentLetter) {
             /*
             |--------------------------------------------------------------------------
             | Complete current round
@@ -983,6 +1056,39 @@ class InterviewController extends Controller
 
                 'current_interviewer_id' => null,
             ]);
+
+            if ($requiresIntentLetter) {
+                $activeLetter = $candidate->intentLetters()
+                    ->latest('id')
+                    ->first();
+
+                if (
+                    $activeLetter &&
+                    $activeLetter->status !== CandidateIntentLetter::STATUS_CANCELLED
+                ) {
+                    abort(
+                        409,
+                        'An active Letter of Intent already exists for this candidate.'
+                    );
+                }
+
+                $letterDetails = $data['intent_letter'];
+
+                $candidate->update([
+                    'final_status' => 'selected',
+                    'final_ctc_offered' => $letterDetails['monthly_ctc'],
+                    'final_in_hand_offered' => $letterDetails['monthly_in_hand'],
+                    'final_salary_offered' => $letterDetails['monthly_ctc'],
+                    'final_designation' => $letterDetails['position_title'],
+                    'final_pf_allowed' => false,
+                ]);
+
+                $intentLetter = $candidate->intentLetters()->create([
+                    ...$letterDetails,
+                    'status' => CandidateIntentLetter::STATUS_DRAFT,
+                    'letter_date' => today(),
+                ]);
+            }
         });
 
         if ($nextProgress && $nextInterviewer) {
@@ -991,11 +1097,32 @@ class InterviewController extends Controller
             );
         }
 
-        $message =
-            $data['completion_action'] ===
-            'mark_all_rounds_cleared'
-            ? 'HR round completed and all interview rounds have been cleared.'
-            : 'Interview completed and the next round has been assigned.';
+        if ($intentLetter) {
+            try {
+                app(CandidateIntentLetterDeliveryService::class)->send(
+                    $intentLetter,
+                    (int) Auth::id(),
+                    app(CandidateIntentLetterPdfService::class),
+                    app(CandidateIntentLetterPortalTokenService::class)
+                );
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                return redirect()
+                    ->route('interviewer.interviews.show', [$candidate, $round])
+                    ->with(
+                        'error',
+                        'Rounds were cleared and the candidate was selected, but the Letter of Intent could not be sent. The draft was saved and can be sent from the recruitment candidate record.'
+                    );
+            }
+
+            return redirect()
+                ->route('interviewer.interviews.show', [$candidate, $round])
+                ->with(
+                    'success',
+                    'All rounds cleared, candidate selected, and Letter of Intent sent.'
+                );
+        }
 
         return redirect()
             ->route('interviewer.dashboard')
