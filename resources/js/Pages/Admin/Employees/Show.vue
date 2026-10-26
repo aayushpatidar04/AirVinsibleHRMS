@@ -78,7 +78,7 @@ const toggleEmployee = () => {
 const roleColors = {
     admin: 'bg-red-100 text-red-700 border-red-200',
     interviewer: 'bg-teal-100 text-teal-700 border-teal-200',
-    hr: 'bg-purple-100 text-purple-700 border-purple-200',
+    hr_recruiter: 'bg-purple-100 text-purple-700 border-purple-200',
     employee: 'bg-gray-100 text-gray-600 border-gray-200',
 }
 

@@ -23,7 +23,7 @@ const initials = computed(() => {
 
 const roleLabel = computed(() => {
     if (
-        page.props.auth?.primary_role === "hr" &&
+        page.props.auth?.primary_role === "hr_recruiter" &&
         (roles.value.includes("interviewer") || user.value?.can_interview)
     ) {
         return "HR Manager · Interviewer";

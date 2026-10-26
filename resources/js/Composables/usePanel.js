@@ -1,7 +1,7 @@
 import { computed } from "vue";
 import { usePage } from "@inertiajs/vue3";
 
-const validPanels = ["admin", "hr", "interviewer", "employee"];
+const validPanels = ["admin", "hr_recruiter", "interviewer", "employee"];
 
 export function usePanel() {
     const page = usePage();

@@ -108,7 +108,7 @@ export const panelConfigurations = {
         ],
     },
 
-    hr: {
+    hr_recruiter: {
         title: "HR Panel",
         roleLabel: "HR Manager",
         dashboardRoute: "hr.dashboard",

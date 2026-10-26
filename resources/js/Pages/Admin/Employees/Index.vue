@@ -33,7 +33,7 @@ watch([search, branchId, department, role, status, canInterview], () => {
 const roleBadge = (roles) => {
     const colors = {
         admin: 'bg-red-100 text-red-700', interviewer: 'bg-teal-100 text-teal-700',
-        hr: 'bg-purple-100 text-purple-700', employee: 'bg-gray-100 text-gray-600'
+        hr_recruiter: 'bg-purple-100 text-purple-700', employee: 'bg-gray-100 text-gray-600'
     }
     return roles?.map(r => ({ label: r, color: colors[r] ?? 'bg-gray-100 text-gray-600' })) ?? []
 }
