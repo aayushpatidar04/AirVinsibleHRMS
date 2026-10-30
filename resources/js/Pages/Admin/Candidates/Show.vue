@@ -2,7 +2,7 @@
 import AppLayout from "@/Layouts/AppLayout.vue";
 import StatusBadge from "@/Components/Common/StatusBadge.vue";
 import Modal from "@/Components/Common/Modal.vue";
-import { useForm, Link } from "@inertiajs/vue3";
+import { useForm, Link, usePage, router } from "@inertiajs/vue3";
 import { ref, computed } from "vue";
 import RichTextEditor from "@/Components/Common/RichTextEditor.vue";
 import InterviewTimeline from "@/Components/Recruitment/InterviewTimeline.vue";
@@ -28,9 +28,28 @@ const props = defineProps({
         type: Object,
         default: null,
     },
+
+    documents: {
+        type: Array,
+        default: () => [],
+    },
+
+    documentRequirements: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const showStatusModal = ref(false);
+
+const page = usePage();
+const permissions = computed(() => {
+    return page.props.auth?.permissions ?? [];
+});
+
+const can = (permission) => {
+    return permissions.value.includes(permission);
+};
 const showApprovalModal = ref(false);
 const showReassignModal = ref(false);
 const showRegPanel = ref(false);
@@ -188,6 +207,18 @@ const canSubmitStatus = computed(() => {
 });
 
 // Open reassign modal for a specific round
+const verifyDoc = (doc) => {
+    const notes = prompt('Verification notes (optional):');
+    router.post(
+        route('candidate.documents.verify', doc.id),
+        { verification_notes: notes },
+        {
+            preserveScroll: true,
+            onSuccess: () => {},
+        }
+    );
+};
+
 const openReassignModal = (round) => {
     selectedRound.value = round;
     reassignForm.new_interviewer_id = round.interviewer_id ?? "";
@@ -665,7 +696,54 @@ const minDateTime = computed(() => {
             </div>
         </div>
 
-        <!-- Approval Status Modal -->
+        <!-- Documents -->
+        <div v-if="documents.length > 0 && can('documents.view')" class="space-y-4 rounded-xl border border-gray-200 bg-white mt-5 p-6 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-ink">Documents</h2>
+                    <p class="mt-1 text-sm text-ink-mute">Required and optional documents submitted by the candidate.</p>
+                </div>
+                <span class="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
+                    {{ documents.filter(d => d.is_verified).length }}/{{ documents.length }} Verified
+                </span>
+            </div>
+
+            <div class="overflow-hidden rounded-lg border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Document</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Uploaded</th>
+                            <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        <tr v-for="doc in documents" :key="doc.id">
+                            <td class="px-4 py-3">
+                                <div class="font-medium text-ink">{{ doc.name }}</div>
+                                <div v-if="doc.is_required" class="text-xs text-red-500">Required</div>
+                                <div v-else class="text-xs text-gray-400">Optional</div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span v-if="doc.is_verified" class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">Verified</span>
+                                <span v-else class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-700">Pending Review</span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-ink-mute">{{ doc.uploaded_at || 'N/A' }}</td>
+                            <td class="px-4 py-3 text-right text-sm">
+                                <a :href="/storage/ + doc.file_path" target="_blank" class="text-indigo-600 hover:text-indigo-900">View</a>
+                                <button v-if="!doc.is_verified && can('documents.verify')" @click="verifyDoc(doc)" class="ml-3 text-green-600 hover:text-green-900">Verify</button>
+                            </td>
+                        </tr>
+                        <tr v-if="documents.length === 0">
+                            <td colspan="4" class="px-4 py-6 text-center text-sm text-ink-mute">No documents uploaded yet.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+                <!-- Approval Status Modal -->
         <Modal
             :show="showApprovalModal"
             title="Update Rejoin Approval"

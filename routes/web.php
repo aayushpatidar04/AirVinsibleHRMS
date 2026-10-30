@@ -71,9 +71,7 @@ Route::post('/documents/{candidate}', [CandidateDocumentController::class, 'stor
 Route::delete('/documents/{candidate}/{document}', [CandidateDocumentController::class, 'destroy'])->name('candidate.documents.destroy');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-
-
-
+    
     // Dashboard redirect based on role
     Route::get('/dashboard', function () {
         $user = request()->user();
@@ -99,6 +97,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/document-requirements/{documentRequirement}', [App\Http\Controllers\Admin\DocumentRequirementController::class, 'update'])->name('admin.document-requirements.update')->middleware('permission:documents.manage');
     Route::delete('/document-requirements/{documentRequirement}', [App\Http\Controllers\Admin\DocumentRequirementController::class, 'destroy'])->name('admin.document-requirements.destroy')->middleware('permission:documents.manage');
     Route::post('/document-requirements/{id}/restore', [App\Http\Controllers\Admin\DocumentRequirementController::class, 'restore'])->name('admin.document-requirements.restore')->middleware('permission:documents.manage');
+
+    Route::post('/documents/verify/{document}', [CandidateDocumentController::class, 'verify'])->name('candidate.documents.verify')->middleware('permission:documents.verify');
 
     Route::middleware('role:admin')
         ->prefix('admin')

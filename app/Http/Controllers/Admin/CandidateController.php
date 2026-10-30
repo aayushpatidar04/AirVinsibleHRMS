@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\InterviewScheduledMail;
 use App\Models\Branch;
 use App\Models\Candidate;
+use App\Models\DocumentRequirement;
 use App\Models\CandidateRoundProgress;
 use App\Models\InterviewRound;
 use App\Models\InterviewSchedule;
@@ -102,7 +103,8 @@ class CandidateController extends Controller
             'currentInterviewer',
             'formSubmission.form',
             'latestOffer',
-            'latestIntentLetter'
+            'latestIntentLetter',
+            'documents.documentRequirement'
         );
         $scorecard = $scorecardService->forCandidate($candidate);
 
@@ -240,7 +242,36 @@ class CandidateController extends Controller
             ->latest('end_date')
             ->first();
 
+        $documents = $candidate->documents->map(fn($doc) => [
+            'id' => $doc->id,
+            'document_requirement_id' => $doc->document_requirement_id,
+            'name' => $doc->documentRequirement->name,
+            'slug' => $doc->documentRequirement->slug,
+            'is_required' => $doc->documentRequirement->is_required,
+            'file_name' => $doc->file_name,
+            'file_path' => $doc->file_path,
+            'mime_type' => $doc->mime_type,
+            'file_size' => $doc->file_size,
+            'is_verified' => $doc->is_verified,
+            'verified_at' => $doc->verified_at?->format('d M Y, h:i A'),
+            'verification_notes' => $doc->verification_notes,
+            'uploaded_at' => $doc->created_at?->format('d M Y, h:i A'),
+        ]);
+
+        $documentRequirements = DocumentRequirement::active()
+            ->ordered()
+            ->get()
+            ->map(fn($req) => [
+                'id' => $req->id,
+                'name' => $req->name,
+                'slug' => $req->slug,
+                'is_required' => $req->is_required,
+                'description' => $req->description,
+            ]);
+
         return Inertia::render('Admin/Candidates/Show', [
+            'documents' => $documents,
+            'documentRequirements' => $documentRequirements,
             'candidate' => [
                 'id' => $candidate->id,
                 'name' => $candidate->full_name,
