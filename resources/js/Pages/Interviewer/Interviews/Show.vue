@@ -106,7 +106,7 @@ const completeForm = useForm({
     salary_offer_min: props.interview.salary_offer_min ?? "",
     salary_offer_max: props.interview.salary_offer_max ?? "",
     offered_designation: props.interview.offered_designation ?? "",
-    salary_offer_status: props.interview.salary_offer_status ?? "",
+    salary_offer_status: props.interview.salary_offer_status ?? props.candidate.latest_salary_offer_status,
     intent_letter: {
         position_title:
             props.interview.offered_designation ||
@@ -120,8 +120,8 @@ const completeForm = useForm({
         joining_date: "",
     },
     completion_action: props.interview.is_hr_round
-        ? "mark_all_rounds_cleared"
-        : "continue_to_next_round",
+        ? "continue_to_next_round"
+        : "mark_all_rounds_cleared",
 });
 
 const salaryResponseOptions = [
@@ -215,9 +215,9 @@ watch(
 const submitComplete = () => {
     completeForm.clearErrors();
     const shouldCreateIntentLetter =
-        props.interview.is_hr_round &&
         completeForm.completion_action === "mark_all_rounds_cleared" &&
-        completeForm.salary_offer_status === "accepted";
+        (completeForm.salary_offer_status === "accepted" ||
+            props.candidate.latest_salary_offer_status === "accepted");
 
     if (
         completeForm.completion_action === "continue_to_next_round" &&
@@ -1468,10 +1468,10 @@ const fieldTypeIcon = (type) => {
 
                 <div
                     v-if="
-                        interview.is_hr_round &&
                         completeForm.completion_action ===
                             'mark_all_rounds_cleared' &&
-                        completeForm.salary_offer_status === 'accepted'
+                        (completeForm.salary_offer_status === 'accepted' ||
+                            candidate.latest_salary_offer_status === 'accepted')
                     "
                     class="space-y-4 rounded-xl border border-green-200 bg-green-50 p-5"
                 >
@@ -1631,14 +1631,13 @@ const fieldTypeIcon = (type) => {
                     </p>
                 </div>
 
-                <!-- HR Completion Decision -->
+                <!-- Completion Decision -->
                 <div
-                    v-if="interview.is_hr_round"
                     class="space-y-3 rounded-xl border border-orange-200 bg-orange-50 p-5"
                 >
                     <div>
                         <h3 class="font-semibold text-orange-900">
-                            HR Round Decision
+                            Round Decision
                         </h3>
 
                         <p class="mt-1 text-sm text-orange-700">
@@ -1669,7 +1668,7 @@ const fieldTypeIcon = (type) => {
                             </p>
 
                             <p class="mt-1 text-sm text-gray-500">
-                                Complete the HR round and assign another
+                                Complete this round and assign another
                                 interview round.
                             </p>
                         </div>
@@ -1697,7 +1696,7 @@ const fieldTypeIcon = (type) => {
                             </p>
 
                             <p class="mt-1 text-sm text-gray-500">
-                                Complete the HR round and close the interview
+                                Complete this round and close the interview
                                 process. An accepted candidate can be selected
                                 and sent a Letter of Intent here.
                             </p>
@@ -1712,21 +1711,11 @@ const fieldTypeIcon = (type) => {
                     </p>
                 </div>
 
-                <!-- Non-HR Information -->
-                <div
-                    v-else
-                    class="rounded-xl border border-indigo-200 bg-indigo-50 p-4"
-                >
-                    <p class="text-sm text-indigo-800">
-                        After completing this round, select the next interview
-                        round and assign an interviewer.
-                    </p>
-                </div>
+
 
                 <!-- Next Round Selection -->
                 <div
                     v-if="
-                        !interview.is_hr_round ||
                         completeForm.completion_action ===
                             'continue_to_next_round'
                     "
@@ -1849,8 +1838,7 @@ const fieldTypeIcon = (type) => {
                     {{
                         completeForm.processing
                             ? "Completing..."
-                            : interview.is_hr_round &&
-                                completeForm.completion_action ===
+                            : completeForm.completion_action ===
                                     "mark_all_rounds_cleared"
                               ? completeForm.salary_offer_status ===
                                 "accepted"

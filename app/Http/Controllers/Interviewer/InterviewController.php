@@ -284,11 +284,11 @@ class InterviewController extends Controller
         */
 
         $nextRounds = InterviewRound::active()
-            ->where(
-                'sequence_number',
-                '>',
-                $round->sequence_number
-            )
+            ->where('id', '!=', $round->id)
+            ->whereDoesntHave('candidateProgress', function ($query) use ($candidate) {
+                $query->where('candidate_id', $candidate->id)
+                       ->where('status', 'completed');
+            })
             ->ordered()
             ->get([
                 'id',
@@ -423,6 +423,9 @@ class InterviewController extends Controller
                     'final_status' =>
                         $candidate->final_status,
 
+                    'latest_salary_offer_status' =>
+                        $candidate->latestSalaryOfferStatus(),
+
                     'intent_letter' =>
                         $candidate->latestIntentLetter
                             ? [
@@ -523,7 +526,6 @@ class InterviewController extends Controller
         );
 
         $progress->startInterview();
-
 
         return back()->with('success', 'Interview started.');
     }
@@ -718,8 +720,7 @@ class InterviewController extends Controller
 
         $profileCategory = $candidate->profile_category;
         $requiresIntentLetter =
-            $isHrRound
-            && $request->input('completion_action') === 'mark_all_rounds_cleared'
+            $request->input('completion_action') === 'mark_all_rounds_cleared'
             && $request->input('salary_offer_status') === 'accepted';
 
         $data = $request->validate([
@@ -839,17 +840,6 @@ class InterviewController extends Controller
             ],
         ]);
 
-        $isHrRound = (bool) $round->is_hr_round;
-        if (
-            !$isHrRound &&
-            $data['completion_action'] !== 'continue_to_next_round'
-        ) {
-            return back()->withErrors([
-                'completion_action' =>
-                    'Only the HR round can mark all rounds as cleared.',
-            ]);
-        }
-
         if (
             $data['completion_action'] === 'continue_to_next_round'
             && (
@@ -860,16 +850,6 @@ class InterviewController extends Controller
             return back()->withErrors([
                 'next_round_id' =>
                     'Please select the next round and interviewer.',
-            ]);
-        }
-
-        if (
-            $data['completion_action'] === 'mark_all_rounds_cleared'
-            && !$isHrRound
-        ) {
-            return back()->withErrors([
-                'completion_action' =>
-                    'Only HR can mark all interview rounds as cleared.',
             ]);
         }
 

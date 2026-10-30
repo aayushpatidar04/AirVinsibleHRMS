@@ -357,6 +357,21 @@ class Candidate extends Model
         return $this->roundProgress()->where('status', 'completed')->count();
     }
 
+    /**
+     * Get the latest salary_offer_status from any completed round.
+     * Used to track candidate response (accepted/negotiating/etc.) across rounds.
+     */
+    public function latestSalaryOfferStatus(): ?string
+    {
+        $progress = $this->roundProgress()
+            ->where('status', 'completed')
+            ->whereNotNull('salary_offer_status')
+            ->latest('created_at')
+            ->first();
+
+        return $progress?->salary_offer_status;
+    }
+
     public function getLatestSalaryOffer(): ?string
     {
         $progress = $this->roundProgress()
