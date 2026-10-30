@@ -146,6 +146,56 @@ class Candidate extends Model
         return $this->hasMany(CandidateRoundProgress::class);
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(CandidateDocument::class);
+    }
+
+    /**
+     * Check if all required documents are submitted and verified.
+     */
+    public function hasAllRequiredDocuments(): bool
+    {
+        $requiredSlugs = DocumentRequirement::active()
+            ->required()
+            ->pluck('slug');
+
+        if ($requiredSlugs->isEmpty()) {
+            return true;
+        }
+
+        $submittedSlugs = $this->documents()
+            ->verified()
+            ->join('document_requirements', 'candidate_documents.document_requirement_id', '=', 'document_requirements.id')
+            ->whereIn('document_requirements.slug', $requiredSlugs)
+            ->pluck('document_requirements.slug');
+
+        return $requiredSlugs->diff($submittedSlugs)->isEmpty();
+    }
+
+    /**
+     * Get missing required document slugs.
+     */
+    public function missingRequiredDocuments()
+    {
+        $requiredSlugs = DocumentRequirement::active()
+            ->required()
+            ->pluck('slug');
+
+        if ($requiredSlugs->isEmpty()) {
+            return collect();
+        }
+
+        $submittedSlugs = $this->documents()
+            ->verified()
+            ->join('document_requirements', 'candidate_documents.document_requirement_id', '=', 'document_requirements.id')
+            ->whereIn('document_requirements.slug', $requiredSlugs)
+            ->pluck('document_requirements.slug');
+
+        return $requiredSlugs->diff($submittedSlugs);
+    }
+
+
     public function responses(): HasMany
     {
         return $this->hasMany(Response::class);

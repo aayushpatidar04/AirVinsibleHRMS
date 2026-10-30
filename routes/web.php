@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\FormController;
 use App\Http\Controllers\Admin\QRCodeController;
 use App\Http\Controllers\Admin\CandidateController as AdminCandidateController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\CandidateDocumentController;
 use App\Http\Controllers\Candidate\InterviewLookupController;
 use App\Http\Controllers\Candidate\RegistrationController;
 use App\Http\Controllers\HR\DashboardController as HrDashboard;
@@ -59,7 +60,19 @@ require __DIR__ . '/auth.php';
 | Authenticated Routes
 |--------------------------------------------------------------------------
 */
+// Public candidate document upload (no auth required)
+Route::get('/documents/upload', [CandidateDocumentController::class, 'showUploadForm'])->name('candidate.documents.upload-form');
+Route::get('/documents/verify-otp/{email}', [CandidateDocumentController::class, 'verifyOtpForm'])->name('candidate.documents.verify-otp');
+Route::post('/documents/verify-otp', [CandidateDocumentController::class, 'verifyOtp'])->name('candidate.documents.verify-otp.submit');
+Route::post('/documents/resend-otp', [CandidateDocumentController::class, 'resendOtp'])->name('candidate.documents.resend-otp');
+Route::post('/documents/lookup', [CandidateDocumentController::class, 'lookup'])->name('candidate.documents.lookup');
+Route::get('/documents/upload/{candidate}', [CandidateDocumentController::class, 'upload'])->name('candidate.documents.upload');
+Route::post('/documents/{candidate}', [CandidateDocumentController::class, 'store'])->name('candidate.documents.store');
+Route::delete('/documents/{candidate}/{document}', [CandidateDocumentController::class, 'destroy'])->name('candidate.documents.destroy');
+
 Route::middleware(['auth', 'verified'])->group(function () {
+
+
 
     // Dashboard redirect based on role
     Route::get('/dashboard', function () {
@@ -78,6 +91,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     | Admin Routes
     |----------------------------------------------------------------------
     */
+    // Admin document requirement management
+    Route::get('/document-requirements', [App\Http\Controllers\Admin\DocumentRequirementController::class, 'index'])->name('admin.document-requirements.index')->middleware('permission:documents.view');
+    Route::get('/document-requirements/create', [App\Http\Controllers\Admin\DocumentRequirementController::class, 'create'])->name('admin.document-requirements.create')->middleware('permission:documents.manage');
+    Route::post('/document-requirements', [App\Http\Controllers\Admin\DocumentRequirementController::class, 'store'])->name('admin.document-requirements.store')->middleware('permission:documents.manage');
+    Route::get('/document-requirements/{documentRequirement}/edit', [App\Http\Controllers\Admin\DocumentRequirementController::class, 'edit'])->name('admin.document-requirements.edit')->middleware('permission:documents.manage');
+    Route::put('/document-requirements/{documentRequirement}', [App\Http\Controllers\Admin\DocumentRequirementController::class, 'update'])->name('admin.document-requirements.update')->middleware('permission:documents.manage');
+    Route::delete('/document-requirements/{documentRequirement}', [App\Http\Controllers\Admin\DocumentRequirementController::class, 'destroy'])->name('admin.document-requirements.destroy')->middleware('permission:documents.manage');
+    Route::post('/document-requirements/{id}/restore', [App\Http\Controllers\Admin\DocumentRequirementController::class, 'restore'])->name('admin.document-requirements.restore')->middleware('permission:documents.manage');
+
     Route::middleware('role:admin')
         ->prefix('admin')
         ->name('admin.')
@@ -382,8 +404,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     'createRevisionForm',
                 ]
             )->name(
-                'offers.revisions.create'
-            );
+                    'offers.revisions.create'
+                );
 
             Route::post(
                 '/offers/{candidateOffer}/revisions',
@@ -617,3 +639,4 @@ Route::prefix('candidate-intent')
             [CandidateIntentLetterPortalController::class, 'decline']
         )->name('decline');
     });
+

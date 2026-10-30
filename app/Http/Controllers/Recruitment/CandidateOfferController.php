@@ -3048,6 +3048,14 @@ class CandidateOfferController extends Controller
             );
         }
 
+        if (!$candidateOffer->candidate->hasAllRequiredDocuments()) {
+            $missing = $candidateOffer->candidate->missingRequiredDocuments()->implode(',');
+            return back()->with(
+                'error',
+                "Cannot send offer letter: required documents are missing ({$missing}). Please ask the candidate to upload them first."
+            );
+        }
+
         $validated = $request->validated();
 
         try {

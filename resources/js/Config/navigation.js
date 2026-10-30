@@ -94,6 +94,12 @@ export const panelConfigurations = {
                 icon: icons.forms,
             },
             {
+                name: "Document Requirements",
+                route: "admin.document-requirements.index",
+                permission: "documents.view",
+                icon: icons.forms,
+            },
+            {
                 name: "QR Codes",
                 route: "admin.qrcodes.index",
                 permission: "qr-codes.view",
