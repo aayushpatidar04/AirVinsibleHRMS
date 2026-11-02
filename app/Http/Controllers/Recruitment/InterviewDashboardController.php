@@ -180,6 +180,7 @@ class InterviewDashboardController extends Controller
                 'branch' => $p->candidate->branch?->name,
                 'round' => $p->round?->name,
                 'interviewer' => $p->interviewer?->full_name,
+                'assignment_status' => $p->assignment_status,
                 'started_at' => $p->start_date?->format('d M Y, h:i A'),
                 'running_minutes' => $p->start_date
                     ? (int) $p->start_date->diffInMinutes(now())

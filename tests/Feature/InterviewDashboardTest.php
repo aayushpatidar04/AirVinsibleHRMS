@@ -77,6 +77,7 @@ function dashboardFixture(): array
             'candidate_id' => $candidate->id,
             'round_id' => $round->id,
             'interviewer_id' => $interviewer->id,
+            'assignment_status' => 'accepted',
             'status' => $status,
             'start_date' => $status === 'in_progress' ? now()->subMinutes(20) : null,
         ]);

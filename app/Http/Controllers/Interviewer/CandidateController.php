@@ -41,6 +41,7 @@ class CandidateController extends Controller
         abort_unless(
             CandidateRoundProgress::where('candidate_id', $candidate->id)
                 ->where('interviewer_id', $user->id)
+                ->where('assignment_status', 'accepted')
                 ->exists(),
             403,
             'You are not assigned to this candidate.'
@@ -57,6 +58,7 @@ class CandidateController extends Controller
         // Find the current assigned progress for this interviewer
         $myProgress = $candidate->roundProgress()
             ->where('interviewer_id', $user->id)
+            ->where('assignment_status', 'accepted')
             ->whereIn('status', ['pending', 'in_progress'])
             ->with('round')
             ->first();

@@ -15,12 +15,32 @@ class DashboardController extends Controller
 
         $allProgress = CandidateRoundProgress::where('interviewer_id', $user->id);
 
-        $pending    = (clone $allProgress)->pending()->with('candidate', 'round')->latest()->get();
-        $inProgress = (clone $allProgress)->inProgress()->with('candidate', 'round')->latest()->get();
+        $assignmentRequests = (clone $allProgress)
+            ->where('assignment_status', 'pending')
+            ->whereIn('status', ['pending', 'in_progress'])
+            ->whereHas('candidate')
+            ->with('candidate', 'round')
+            ->latest()
+            ->get();
+        $pending = (clone $allProgress)
+            ->where('assignment_status', 'accepted')
+            ->whereHas('candidate')
+            ->pending()
+            ->with('candidate', 'round')
+            ->latest()
+            ->get();
+        $inProgress = (clone $allProgress)
+            ->where('assignment_status', 'accepted')
+            ->whereHas('candidate')
+            ->inProgress()
+            ->with('candidate', 'round')
+            ->latest()
+            ->get();
 
         return Inertia::render('Interviewer/Dashboard', [
             'stats' => [
                 'pending'         => $pending->count(),
+                'assignment_requests' => $assignmentRequests->count(),
                 'in_progress'     => $inProgress->count(),
                 'completed_today' => (clone $allProgress)->completed()
                     ->whereDate('end_date', today())->count(),
@@ -28,6 +48,7 @@ class DashboardController extends Controller
                 'total_rejected'  => (clone $allProgress)->rejected()->count(),
             ],
             'pending_interviews'  => $this->mapProgress($pending),
+            'assignment_requests' => $this->mapProgress($assignmentRequests),
             'active_interviews'   => $this->mapProgress($inProgress),
         ]);
     }

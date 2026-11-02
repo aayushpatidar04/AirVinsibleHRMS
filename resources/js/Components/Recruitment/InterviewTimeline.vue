@@ -227,6 +227,26 @@ const openSchedule = (progress) => {
 
                                 <span>·</span>
 
+                                <span
+                                    v-if="progress.assignment_status === 'pending'"
+                                    class="font-medium text-amber-600"
+                                >
+                                    Awaiting interviewer response
+                                </span>
+                                <span
+                                    v-else-if="progress.assignment_status === 'rejected'"
+                                    class="font-medium text-red-600"
+                                >
+                                    Rejected — reassign required
+                                </span>
+                                <span
+                                    v-else-if="progress.assignment_status === 'accepted'"
+                                    class="font-medium text-green-600"
+                                >
+                                    Accepted
+                                </span>
+                                <span v-if="progress.assignment_status">·</span>
+
                                 <span>
                                     {{ progress.started_at || "Not started" }}
                                 </span>

@@ -244,7 +244,21 @@ const thBase =
                                 </td>
                                 <td :class="[tdBase, 'text-gray-600']">{{ row.branch ?? "—" }}</td>
                                 <td :class="[tdBase, 'text-gray-600']">{{ row.round ?? "—" }}</td>
-                                <td :class="[tdBase, 'text-gray-600']">{{ row.interviewer ?? "—" }}</td>
+                                <td :class="[tdBase, 'text-gray-600']">
+                                    {{ row.interviewer ?? "—" }}
+                                    <p
+                                        v-if="activeTab === 'pending' && row.assignment_status === 'pending'"
+                                        class="mt-0.5 text-xs font-medium text-amber-600"
+                                    >
+                                        Awaiting interviewer response
+                                    </p>
+                                    <p
+                                        v-else-if="activeTab === 'pending' && row.assignment_status === 'rejected'"
+                                        class="mt-0.5 text-xs font-medium text-red-600"
+                                    >
+                                        Rejected — reassign required
+                                    </p>
+                                </td>
 
                                 <template v-if="activeTab === 'scheduled'">
                                     <td :class="[tdBase, 'text-gray-700']">{{ row.scheduled_label }}</td>

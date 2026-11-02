@@ -30,6 +30,7 @@ class CandidateRoundProgressPolicy
         }
 
         return $user->can('interviews.view-assigned')
+            && $progress->assignment_status === 'accepted'
             && $progress->interviewer_id === $user->id;
     }
 
@@ -39,6 +40,7 @@ class CandidateRoundProgressPolicy
     ): bool {
         return $user->can('interviews.start')
             && $progress->interviewer_id === $user->id
+            && $progress->assignment_status === 'accepted'
             && $progress->status === 'pending';
     }
 
@@ -48,6 +50,7 @@ class CandidateRoundProgressPolicy
     ): bool {
         return $user->can('interviews.save-response')
             && $progress->interviewer_id === $user->id
+            && $progress->assignment_status === 'accepted'
             && in_array(
                 $progress->status,
                 ['pending', 'in_progress'],
@@ -61,6 +64,7 @@ class CandidateRoundProgressPolicy
     ): bool {
         return $user->can('interviews.add-custom-question')
             && $progress->interviewer_id === $user->id
+            && $progress->assignment_status === 'accepted'
             && in_array(
                 $progress->status,
                 ['pending', 'in_progress'],
@@ -74,6 +78,7 @@ class CandidateRoundProgressPolicy
     ): bool {
         return $user->can('interviews.complete')
             && $progress->interviewer_id === $user->id
+            && $progress->assignment_status === 'accepted'
             && $progress->status === 'in_progress';
     }
 
@@ -83,6 +88,21 @@ class CandidateRoundProgressPolicy
     ): bool {
         return $user->can('interviews.reject-candidate')
             && $progress->interviewer_id === $user->id
+            && $progress->assignment_status === 'accepted'
+            && in_array(
+                $progress->status,
+                ['pending', 'in_progress'],
+                true
+            );
+    }
+
+    public function respondToAssignment(
+        User $user,
+        CandidateRoundProgress $progress
+    ): bool {
+        return $user->can('interviews.view-assigned')
+            && $progress->interviewer_id === $user->id
+            && $progress->assignment_status === 'pending'
             && in_array(
                 $progress->status,
                 ['pending', 'in_progress'],
@@ -126,7 +146,10 @@ class CandidateRoundProgressPolicy
          * Assigned interviewers can discuss salary only during
          * their own assigned round.
          */
-        if ($progress->interviewer_id === $user->id) {
+        if (
+            $progress->interviewer_id === $user->id
+            && $progress->assignment_status === 'accepted'
+        ) {
             return true;
         }
 

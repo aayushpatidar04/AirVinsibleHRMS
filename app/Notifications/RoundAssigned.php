@@ -32,7 +32,7 @@ class RoundAssigned extends Notification
             'round_id' => $round->id,
             'round_name' => $round->name,
             'assigned_by' => auth()->id(),
-            'message' => "You have been assigned to conduct the {$round->name} round for {$candidate->full_name}.",
+            'message' => "You have been invited to conduct the {$round->name} round for {$candidate->full_name}. Please accept or reject the assignment.",
             'progress_id' => $this->progress->id,
         ];
     }
@@ -41,8 +41,8 @@ class RoundAssigned extends Notification
     {
         return (new MailMessage)
             ->subject('Interview Round Assigned')
-            ->line("You have been assigned to the {$this->progress->round->name} round for {$this->progress->candidate->full_name}.")
-            ->action('View Candidate', url('/interviewer/candidates/' . $this->progress->candidate->id))
-            ->line('Please review the candidate details and take action as needed.');
+            ->line("You have been invited to conduct the {$this->progress->round->name} round for {$this->progress->candidate->full_name}. Please accept or reject the assignment.")
+            ->action('Review Assignment', url('/interviewer/dashboard'))
+            ->line('Accept or reject this assignment from your interviewer dashboard.');
     }
 }

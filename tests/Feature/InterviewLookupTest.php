@@ -62,6 +62,7 @@ function lookupProgress(array $fx, Candidate $candidate, string $status = 'pendi
         'candidate_id' => $candidate->id,
         'round_id' => $fx['round']->id,
         'interviewer_id' => ($interviewer ?? $fx['interviewer'])->id,
+        'assignment_status' => 'accepted',
         'status' => $status,
     ]);
 }

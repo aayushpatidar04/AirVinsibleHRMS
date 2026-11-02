@@ -85,6 +85,14 @@ class InterviewHistoryService
             'interviewer_id' =>
                 $progress->interviewer_id,
 
+            'assignment_status' =>
+                $progress->assignment_status,
+
+            'assignment_responded_at' =>
+                $progress->assignment_responded_at?->format(
+                    'd M Y H:i'
+                ),
+
             'interviewer_employee_id' =>
                 $progress->interviewer?->employee_id,
 

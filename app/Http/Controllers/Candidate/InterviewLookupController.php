@@ -46,6 +46,7 @@ class InterviewLookupController extends Controller
     private function find(string $email): ?array
     {
         $progress = CandidateRoundProgress::query()
+            ->where('assignment_status', 'accepted')
             ->whereIn('status', ['in_progress', 'pending'])
             ->whereHas('candidate', fn ($q) => $q
                 ->whereRaw('LOWER(email) = ?', [$email])

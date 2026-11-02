@@ -294,6 +294,7 @@ class DatabaseSeeder extends Seeder
                 ['candidate_id' => $candidate->id, 'round_id' => $round->id],
                 [
                     'interviewer_id' => $interviewer->id,
+                    'assignment_status' => 'accepted',
                     'status'         => $cd['status'] === 'rejected' ? 'rejected' : 'pending',
                 ]
             );

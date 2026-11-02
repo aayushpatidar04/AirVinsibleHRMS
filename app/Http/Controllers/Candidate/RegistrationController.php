@@ -9,6 +9,7 @@ use App\Models\CandidateRoundProgress;
 use App\Models\InterviewRound;
 use App\Models\QrCode;
 use App\Models\User;
+use App\Notifications\RoundAssigned;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -219,18 +220,21 @@ class RegistrationController extends Controller
             }
 
             if ($interviewer) {
-                CandidateRoundProgress::create([
+                $progress = CandidateRoundProgress::create([
                     'candidate_id' => $candidate->id,
                     'round_id' => $firstRound->id,
                     'interviewer_id' => $interviewer->id,
+                    'assignment_status' => 'pending',
                     'status' => 'pending',
                 ]);
 
                 $candidate->update([
                     'current_round_id' => $firstRound->id,
-                    'current_interviewer_id' => $interviewer->id,
+                    'current_interviewer_id' => null,
                     'current_status' => 'in_progress',
                 ]);
+
+                $interviewer->notify(new RoundAssigned($progress));
             }
         }
 

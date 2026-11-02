@@ -2,9 +2,25 @@
 import AppLayout from '@/Layouts/AppLayout.vue'
 import StatusBadge from '@/Components/Common/StatusBadge.vue'
 import StatCard from '@/Components/Common/StatCard.vue'
-import { Link } from '@inertiajs/vue3'
+import { Link, router } from '@inertiajs/vue3'
 
-defineProps({ stats: Object, pending_interviews: Array, active_interviews: Array })
+defineProps({
+    stats: Object,
+    assignment_requests: { type: Array, default: () => [] },
+    pending_interviews: { type: Array, default: () => [] },
+    active_interviews: { type: Array, default: () => [] }
+})
+
+const respondToAssignment = (assignment, response) => {
+    router.post(
+        route(`interviewer.interviews.assignment.${response}`, {
+            candidate: assignment.candidate_id,
+            round: assignment.round_id
+        }),
+        {},
+        { preserveScroll: true }
+    )
+}
 </script>
 
 <template>
@@ -13,11 +29,39 @@ defineProps({ stats: Object, pending_interviews: Array, active_interviews: Array
             <h1 class="text-2xl font-bold text-gray-900">My Dashboard</h1>
 
             <!-- Stats -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                <StatCard title="Assignment Requests" :value="stats.assignment_requests" icon="📩" color="purple" />
                 <StatCard title="Pending" :value="stats.pending" icon="⏳" color="yellow" />
                 <StatCard title="In Progress" :value="stats.in_progress" icon="🎙️" color="blue" />
                 <StatCard title="Done Today" :value="stats.completed_today" icon="✅" color="green" />
                 <StatCard title="Total Completed" :value="stats.total_completed" icon="📊" color="indigo" />
+            </div>
+
+            <div v-if="assignment_requests.length"
+                class="bg-white rounded-xl shadow-sm border border-purple-100 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100">
+                    <h2 class="font-semibold text-gray-800">Assignment Requests ({{ assignment_requests.length }})</h2>
+                    <p class="mt-1 text-sm text-gray-500">Accept an assignment to access the candidate and begin the interview.</p>
+                </div>
+                <div class="divide-y divide-gray-50">
+                    <div v-for="assignment in assignment_requests" :key="assignment.id"
+                        class="px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <p class="font-medium text-gray-900">{{ assignment.candidate_name }}</p>
+                            <p class="text-sm text-gray-500">{{ assignment.position }} · {{ assignment.profile }} · {{ assignment.round_name }}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" class="btn-secondary text-sm"
+                                @click="respondToAssignment(assignment, 'reject')">
+                                Reject
+                            </button>
+                            <button type="button" class="btn-primary text-sm"
+                                @click="respondToAssignment(assignment, 'accept')">
+                                Accept
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Pending Interviews -->

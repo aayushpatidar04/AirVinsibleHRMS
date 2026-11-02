@@ -530,6 +530,69 @@ class InterviewController extends Controller
         return back()->with('success', 'Interview started.');
     }
 
+    public function acceptAssignment(Candidate $candidate, InterviewRound $round)
+    {
+        $progress = $this->getAuthorizedProgress(
+            $candidate,
+            $round,
+            'respondToAssignment'
+        );
+
+        DB::transaction(function () use ($progress, $candidate, $round) {
+            $updated = CandidateRoundProgress::query()
+                ->whereKey($progress->id)
+                ->where('interviewer_id', auth()->id())
+                ->where('assignment_status', 'pending')
+                ->whereIn('status', ['pending', 'in_progress'])
+                ->update([
+                    'assignment_status' => 'accepted',
+                    'assignment_responded_at' => now(),
+                ]);
+
+            abort_unless($updated, 409, 'This assignment has already been updated.');
+
+            if ((int) $candidate->current_round_id === (int) $round->id) {
+                $candidate->update([
+                    'current_interviewer_id' => auth()->id(),
+                ]);
+            }
+        });
+
+        return back()->with('success', 'Interview assignment accepted.');
+    }
+
+    public function rejectAssignment(Candidate $candidate, InterviewRound $round)
+    {
+        $progress = $this->getAuthorizedProgress(
+            $candidate,
+            $round,
+            'respondToAssignment'
+        );
+
+        DB::transaction(function () use ($progress, $candidate, $round) {
+            $updated = CandidateRoundProgress::query()
+                ->whereKey($progress->id)
+                ->where('interviewer_id', auth()->id())
+                ->where('assignment_status', 'pending')
+                ->whereIn('status', ['pending', 'in_progress'])
+                ->update([
+                    'assignment_status' => 'rejected',
+                    'assignment_responded_at' => now(),
+                ]);
+
+            abort_unless($updated, 409, 'This assignment has already been updated.');
+
+            if (
+                (int) $candidate->current_round_id === (int) $round->id
+                && (int) $candidate->current_interviewer_id === (int) auth()->id()
+            ) {
+                $candidate->update(['current_interviewer_id' => null]);
+            }
+        });
+
+        return back()->with('success', 'Interview assignment rejected. HR can assign another interviewer.');
+    }
+
     /**
      * Reassign the current round to another interviewer.
      */
@@ -557,8 +620,17 @@ class InterviewController extends Controller
             ]);
         }
 
-        $progress->update(['interviewer_id' => $newInterviewer->id]);
-        $candidate->update(['current_interviewer_id' => $newInterviewer->id]);
+        DB::transaction(function () use ($progress, $candidate, $newInterviewer) {
+            $progress->update([
+                'interviewer_id' => $newInterviewer->id,
+                'assignment_status' => 'pending',
+                'assignment_responded_at' => null,
+            ]);
+
+            if ((int) $candidate->current_round_id === (int) $progress->round_id) {
+                $candidate->update(['current_interviewer_id' => null]);
+            }
+        });
 
         $newInterviewer->notify(new RoundAssigned($progress));
 
@@ -1008,6 +1080,8 @@ class InterviewController extends Controller
                         'interviewer_id' =>
                             $nextInterviewer->id,
 
+                        'assignment_status' => 'pending',
+
                         'status' => 'pending',
                     ]);
 
@@ -1015,8 +1089,7 @@ class InterviewController extends Controller
                     'current_status' => 'in_progress',
                     'current_round_id' =>
                         $nextRound->id,
-                    'current_interviewer_id' =>
-                        $nextInterviewer->id,
+                    'current_interviewer_id' => null,
                 ]);
 
                 return;

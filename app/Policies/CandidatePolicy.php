@@ -44,6 +44,7 @@ class CandidatePolicy
             return $candidate->current_interviewer_id === $user->id
                 || $candidate->roundProgress()
                     ->where('interviewer_id', $user->id)
+                    ->where('assignment_status', 'accepted')
                     ->exists();
         }
 
@@ -68,6 +69,7 @@ class CandidatePolicy
 
         return $candidate->roundProgress()
             ->where('interviewer_id', $user->id)
+            ->where('assignment_status', 'accepted')
             ->exists();
     }
 

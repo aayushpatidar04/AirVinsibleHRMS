@@ -19,6 +19,8 @@ class CandidateRoundProgress extends Model
         'candidate_id',
         'round_id',
         'interviewer_id',
+        'assignment_status',
+        'assignment_responded_at',
         'status',
         'start_date',
         'end_date',
@@ -39,6 +41,7 @@ class CandidateRoundProgress extends Model
     protected $casts = [
         'start_date'          => 'datetime',
         'end_date'            => 'datetime',
+        'assignment_responded_at' => 'datetime',
         'salary_offer_amount' => 'decimal:2',
         'salary_offer_min'    => 'decimal:2',
         'salary_offer_max'    => 'decimal:2',
@@ -132,7 +135,9 @@ class CandidateRoundProgress extends Model
             $user->isInterviewer()
             && $user->can('interviews.view-assigned')
         ) {
-            return $query->where('interviewer_id', $user->id);
+            return $query
+                ->where('interviewer_id', $user->id)
+                ->where('assignment_status', 'accepted');
         }
 
         return $query->whereRaw('1 = 0');
@@ -142,6 +147,10 @@ class CandidateRoundProgress extends Model
 
     public function startInterview(): bool
     {
+        if ($this->assignment_status !== 'accepted') {
+            return false;
+        }
+
         return $this->update([
             'status'     => 'in_progress',
             'start_date' => now(),

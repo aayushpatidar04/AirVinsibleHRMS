@@ -493,6 +493,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->name('interviews.show');
 
             Route::post(
+                '/candidates/{candidate}/rounds/{round}/assignment/accept',
+                [InterviewController::class, 'acceptAssignment']
+            )->name('interviews.assignment.accept');
+
+            Route::post(
+                '/candidates/{candidate}/rounds/{round}/assignment/reject',
+                [InterviewController::class, 'rejectAssignment']
+            )->name('interviews.assignment.reject');
+
+            Route::post(
                 '/candidates/{candidate}/rounds/{round}/start',
                 [InterviewController::class, 'start']
             )
@@ -639,4 +649,3 @@ Route::prefix('candidate-intent')
             [CandidateIntentLetterPortalController::class, 'decline']
         )->name('decline');
     });
-

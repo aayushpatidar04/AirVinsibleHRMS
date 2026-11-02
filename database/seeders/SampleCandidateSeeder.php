@@ -242,6 +242,7 @@ class SampleCandidateSeeder extends Seeder
                     ['candidate_id' => $candidate->id, 'round_id' => $pr['round']->id],
                     [
                         'interviewer_id' => $pr['interviewer']->id,
+                        'assignment_status' => 'accepted',
                         'status' => $pr['status'],
                         'start_date' => now()->subDays(rand(2, 8)),
                         'end_date' => now()->subDays(rand(1, 4)),
@@ -262,6 +263,7 @@ class SampleCandidateSeeder extends Seeder
                     ['candidate_id' => $candidate->id, 'round_id' => $cd['round']->id],
                     [
                         'interviewer_id' => $cd['interviewer']->id,
+                        'assignment_status' => 'accepted',
                         'status' => $cd['progress_status'],
                         'start_date' => $cd['progress_status'] === 'in_progress' ? now()->subHours(1) : null,
                     ]

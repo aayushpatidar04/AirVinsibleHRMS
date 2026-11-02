@@ -328,7 +328,9 @@ class Candidate extends Model
                     ->orWhereHas(
                         'roundProgress',
                         fn(Builder $progressQuery) =>
-                        $progressQuery->where('interviewer_id', $user->id)
+                            $progressQuery
+                                ->where('interviewer_id', $user->id)
+                                ->where('assignment_status', 'accepted')
                     );
             });
         }
@@ -343,7 +345,9 @@ class Candidate extends Model
         return $query->where(function (Builder $query) use ($user) {
             $query
                 ->whereHas('roundProgress', function (Builder $progressQuery) use ($user) {
-                    $progressQuery->where('interviewer_id', $user->id);
+                    $progressQuery
+                        ->where('interviewer_id', $user->id)
+                        ->where('assignment_status', 'accepted');
                 });
         });
     }
