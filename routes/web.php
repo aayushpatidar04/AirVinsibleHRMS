@@ -25,6 +25,7 @@ use App\Http\Controllers\Recruitment\CandidateOfferPortalController;
 use App\Http\Controllers\Recruitment\CandidateIntentLetterController;
 use App\Http\Controllers\Recruitment\CandidateIntentLetterPortalController;
 use App\Http\Controllers\Recruitment\InterviewDashboardController;
+use App\Http\Controllers\RecordsExportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -71,7 +72,7 @@ Route::post('/documents/{candidate}', [CandidateDocumentController::class, 'stor
 Route::delete('/documents/{candidate}/{document}', [CandidateDocumentController::class, 'destroy'])->name('candidate.documents.destroy');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    
+
     // Dashboard redirect based on role
     Route::get('/dashboard', function () {
         $user = request()->user();
@@ -99,6 +100,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/document-requirements/{id}/restore', [App\Http\Controllers\Admin\DocumentRequirementController::class, 'restore'])->name('admin.document-requirements.restore')->middleware('permission:documents.manage');
 
     Route::post('/documents/verify/{document}', [CandidateDocumentController::class, 'verify'])->name('candidate.documents.verify')->middleware('permission:documents.verify');
+    Route::get('/records/export', [RecordsExportController::class, 'index'])
+        ->middleware('permission:documents.export')
+        ->name('records.export.index');
+    Route::get('/records/export/download', [RecordsExportController::class, 'download'])
+        ->middleware('permission:documents.export')
+        ->name('records.export.download');
 
     Route::middleware('role:admin')
         ->prefix('admin')

@@ -23,6 +23,9 @@ const icons = {
     calendar:
         "M8 7V3m8 4V3m-9 8h10m-12 9h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v11a2 2 0 002 2z",
 
+    export:
+        "M12 3v12m0 0l4-4m-4 4l-4-4M5 17v3h14v-3",
+
     roles:
         "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm3-11a3 3 0 100-6 3 3 0 000 6zm2 8h4v-1a5 5 0 00-6.713-4.7",
 };
@@ -100,6 +103,12 @@ export const panelConfigurations = {
                 icon: icons.forms,
             },
             {
+                name: "Export Records",
+                route: "records.export.index",
+                permission: "documents.export",
+                icon: icons.export,
+            },
+            {
                 name: "QR Codes",
                 route: "admin.qrcodes.index",
                 permission: "qr-codes.view",
@@ -157,6 +166,12 @@ export const panelConfigurations = {
                 route: "interviewer.candidates.index",
                 permission: "interviews.view-assigned",
                 icon: icons.rounds,
+            },
+            {
+                name: "Export Records",
+                route: "records.export.index",
+                permission: "documents.export",
+                icon: icons.export,
             },
         ],
     },
