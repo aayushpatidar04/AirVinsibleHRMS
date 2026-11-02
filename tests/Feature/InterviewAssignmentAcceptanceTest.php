@@ -26,8 +26,12 @@ function assignmentBranch(): Branch
     ]);
 }
 
-function assignmentUser(string $role, Branch $branch, string $email): User
-{
+function assignmentUser(
+    string $role,
+    Branch $branch,
+    string $email,
+    ?bool $canInterview = null
+): User {
     $user = User::query()->create([
         'name' => ucfirst($role).' User',
         'first_name' => ucfirst($role),
@@ -37,7 +41,7 @@ function assignmentUser(string $role, Branch $branch, string $email): User
         'branch_id' => $branch->id,
         'is_active' => true,
         'employment_status' => 'active',
-        'can_interview' => $role === 'interviewer',
+        'can_interview' => $canInterview ?? $role === 'interviewer',
     ]);
     $user->forceFill(['email_verified_at' => now()])->save();
     $user->assignRole($role);
@@ -68,6 +72,7 @@ function assignmentFixture(): array
         'phone' => '9876543210',
         'position_applied' => 'Support Executive',
         'branch_id' => $branch->id,
+        'registration_date' => now(),
         'current_round_id' => $round->id,
         'current_status' => 'in_progress',
     ]);
@@ -129,6 +134,63 @@ test('candidate lookup does not expose an interviewer before the assignment is a
         ->assertInertia(fn ($page) => $page
             ->where('result', null)
         );
+});
+
+test('hr assigned as interviewer sees and can accept the assignment on the hr dashboard', function () {
+    $fx = assignmentFixture();
+    $hr = assignmentUser(
+        'hr_recruiter',
+        $fx['branch'],
+        'hr-interviewer-assignment@example.test',
+        true
+    );
+    $hr->allowedRounds()->attach($fx['round']);
+    $fx['progress']->update(['interviewer_id' => $hr->id]);
+
+    $this->actingAs($hr)
+        ->get(route('hr.dashboard'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('stats.pending_assignments', 1)
+            ->has('assignmentRequests', 1)
+            ->where('assignmentRequests.0.candidate_id', $fx['candidate']->id)
+        );
+
+    $this->post(route('interviewer.interviews.assignment.accept', [
+        'candidate' => $fx['candidate']->id,
+        'round' => $fx['round']->id,
+    ]))->assertRedirect();
+
+    expect($fx['progress']->fresh()->assignment_status)->toBe('accepted')
+        ->and($fx['candidate']->fresh()->current_interviewer_id)->toBe($hr->id);
+});
+
+test('admin assigned as interviewer sees and can reject the assignment on the admin dashboard', function () {
+    $fx = assignmentFixture();
+    $admin = assignmentUser(
+        'admin',
+        $fx['branch'],
+        'admin-interviewer-assignment@example.test',
+        true
+    );
+    $admin->allowedRounds()->attach($fx['round']);
+    $fx['progress']->update(['interviewer_id' => $admin->id]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.dashboard'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('stats.pending_assignments', 1)
+            ->has('assignmentRequests', 1)
+            ->where('assignmentRequests.0.candidate_id', $fx['candidate']->id)
+        );
+
+    $this->post(route('interviewer.interviews.assignment.reject', [
+        'candidate' => $fx['candidate']->id,
+        'round' => $fx['round']->id,
+    ]))->assertRedirect();
+
+    expect($fx['progress']->fresh()->assignment_status)->toBe('rejected');
 });
 
 test('a rejected assignment can be reassigned by hr to another interviewer', function () {

@@ -3,9 +3,13 @@ import { computed, onMounted, ref } from 'vue'
 import AppLayout from '@/Layouts/AppLayout.vue'
 import StatCard from '@/Components/Common/StatCard.vue'
 import StatusBadge from '@/Components/Common/StatusBadge.vue'
+import AssignmentRequests from '@/Components/Recruitment/AssignmentRequests.vue'
 import { Link, usePage } from '@inertiajs/vue3'
 
-const props = defineProps({ stats: Object })
+const props = defineProps({
+    stats: Object,
+    assignmentRequests: { type: Array, default: () => [] }
+})
 
 const page = usePage()
 const firstName = computed(() => page.props.auth?.user?.first_name ?? '')
@@ -43,14 +47,17 @@ const profiles = computed(() => [
             </div>
 
             <!-- Top stats -->
-            <div class="grid grid-cols-2 gap-4 lg:grid-cols-5">
+            <div class="grid grid-cols-2 gap-4 lg:grid-cols-6">
                 <StatCard title="Total Candidates" :value="stats.total_candidates" icon="👥" color="indigo" :delay="0" />
                 <StatCard title="Branches" :value="stats.total_branches" icon="🏢" color="blue" :delay="60" />
                 <StatCard title="Interviewers" :value="stats.total_interviewers" icon="🎙️" color="teal" :delay="120" />
                 <StatCard title="Pending Interviews" :value="stats.pending_interviews" icon="⏳" color="yellow" :delay="180" />
+                <StatCard title="Pending Assignments" :value="stats.pending_assignments" icon="📩" color="purple" :delay="210" />
                 <StatCard title="Selected" :value="stats.selected_candidates" icon="✅" color="green" :delay="240"
                     class="col-span-2 lg:col-span-1" :subtitle="`${stats.selection_rate}% selection rate`" />
             </div>
+
+            <AssignmentRequests :requests="assignmentRequests" />
 
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <!-- Candidate status -->

@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import StatCard from "@/Components/Common/StatCard.vue";
+import AssignmentRequests from "@/Components/Recruitment/AssignmentRequests.vue";
 import { Head, Link, usePage } from "@inertiajs/vue3";
 
 defineProps({
@@ -10,6 +11,10 @@ defineProps({
         required: true,
     },
     upcomingInterviews: {
+        type: Array,
+        default: () => [],
+    },
+    assignmentRequests: {
         type: Array,
         default: () => [],
     },
@@ -90,6 +95,8 @@ const initials = (person) =>
                     :delay="i * 60"
                 />
             </div>
+
+            <AssignmentRequests :requests="assignmentRequests" />
 
             <!-- Upcoming interviews -->
             <section class="surface p-6">

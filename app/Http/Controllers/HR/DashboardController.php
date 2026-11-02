@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Hr;
 
 use App\Http\Controllers\Controller;
 use App\Models\Candidate;
+use App\Models\CandidateRoundProgress;
 use App\Models\InterviewSchedule;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,6 +25,28 @@ class DashboardController extends Controller
 
         $scheduleQuery = InterviewSchedule::query()
             ->visibleTo($user);
+        $assignmentRequests = CandidateRoundProgress::query()
+            ->where('interviewer_id', $user->id)
+            ->where('assignment_status', 'pending')
+            ->whereIn('status', ['pending', 'in_progress'])
+            ->whereHas('candidate')
+            ->with([
+                'candidate:id,first_name,last_name,position_applied,branch_id',
+                'candidate.branch:id,name',
+                'round:id,name',
+            ])
+            ->latest()
+            ->get()
+            ->map(fn (CandidateRoundProgress $progress) => [
+                'id' => $progress->id,
+                'candidate_id' => $progress->candidate_id,
+                'candidate_name' => $progress->candidate->full_name,
+                'position' => $progress->candidate->position_applied,
+                'branch_name' => $progress->candidate->branch?->name,
+                'round_id' => $progress->round_id,
+                'round_name' => $progress->round->name,
+            ])
+            ->values();
 
         return Inertia::render('Hr/Dashboard', [
             'stats' => [
@@ -55,7 +78,11 @@ class DashboardController extends Controller
                     ->where('scheduled_at', '>', now())
                     ->where('status', 'scheduled')
                     ->count(),
+
+                'pending_assignments' => $assignmentRequests->count(),
             ],
+
+            'assignmentRequests' => $assignmentRequests,
 
             'upcomingInterviews' => $scheduleQuery
                 ->with([
