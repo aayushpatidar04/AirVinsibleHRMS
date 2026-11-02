@@ -28,4 +28,34 @@ class RecordsExportController extends Controller
             ->download($archivePath, 'hrms-records-'.now()->format('Ymd-His').'.zip')
             ->deleteFileAfterSend(true);
     }
+
+    public function downloadEmployee(
+        Request $request,
+        RecordsExportService $exportService,
+        int $employee
+    ): BinaryFileResponse {
+        $archivePath = $exportService->createEmployeeArchive(
+            $request->user(),
+            $employee
+        );
+
+        return response()
+            ->download($archivePath, "employee-{$employee}-records.zip")
+            ->deleteFileAfterSend(true);
+    }
+
+    public function downloadCandidate(
+        Request $request,
+        RecordsExportService $exportService,
+        int $candidate
+    ): BinaryFileResponse {
+        $archivePath = $exportService->createCandidateArchive(
+            $request->user(),
+            $candidate
+        );
+
+        return response()
+            ->download($archivePath, "candidate-{$candidate}-records.zip")
+            ->deleteFileAfterSend(true);
+    }
 }

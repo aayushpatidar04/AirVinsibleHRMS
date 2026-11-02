@@ -30,8 +30,25 @@ class RecordsExportService
         ];
     }
 
-    public function createArchive(User $user): string
+    public function createEmployeeArchive(User $user, int $employeeId): string
     {
+        $this->employeeQuery($user)->findOrFail($employeeId);
+
+        return $this->createArchive($user, $employeeId);
+    }
+
+    public function createCandidateArchive(User $user, int $candidateId): string
+    {
+        $this->candidateQuery($user)->findOrFail($candidateId);
+
+        return $this->createArchive($user, null, $candidateId);
+    }
+
+    public function createArchive(
+        User $user,
+        ?int $employeeId = null,
+        ?int $candidateId = null
+    ): string {
         $workspace = storage_path('app/temp/records-export/'.Str::uuid());
         $archivePath = storage_path('app/records-export-'.Str::uuid().'.zip');
         File::ensureDirectoryExists($workspace);
@@ -49,15 +66,26 @@ class RecordsExportService
             $candidatesCsv = $workspace.DIRECTORY_SEPARATOR.'candidates.csv';
             $documentsCsv = $workspace.DIRECTORY_SEPARATOR.'documents.csv';
 
-            $this->writeEmployeesCsv($employeesCsv, $user);
-            $this->writeCandidatesCsv($candidatesCsv, $user);
-            $this->writeDocumentsCsv($documentsCsv, $workspace, $zip, $user);
+            $entries = [];
+            if ($candidateId === null) {
+                $this->writeEmployeesCsv($employeesCsv, $user, $employeeId);
+                $entries['employees.csv'] = $employeesCsv;
+            }
+            if ($employeeId === null) {
+                $this->writeCandidatesCsv($candidatesCsv, $user, $candidateId);
+                $entries['candidates.csv'] = $candidatesCsv;
+            }
+            $this->writeDocumentsCsv(
+                $documentsCsv,
+                $workspace,
+                $zip,
+                $user,
+                $employeeId,
+                $candidateId
+            );
+            $entries['documents.csv'] = $documentsCsv;
 
-            foreach ([
-                'employees.csv' => $employeesCsv,
-                'candidates.csv' => $candidatesCsv,
-                'documents.csv' => $documentsCsv,
-            ] as $entryName => $filePath) {
+            foreach ($entries as $entryName => $filePath) {
                 if (! $zip->addFile($filePath, $entryName)) {
                     throw new RuntimeException("Unable to add {$entryName} to the export archive.");
                 }
@@ -86,7 +114,7 @@ class RecordsExportService
         return $archivePath;
     }
 
-    private function employeeQuery(User $user): Builder
+    private function employeeQuery(User $user, ?int $employeeId = null): Builder
     {
         return User::withTrashed()
             ->with([
@@ -97,17 +125,19 @@ class RecordsExportService
             ->when(
                 ! $user->hasRole('admin'),
                 fn (Builder $query) => $this->scopeBranch($query, $user)
-            );
+            )
+            ->when($employeeId !== null, fn (Builder $query) => $query->whereKey($employeeId));
     }
 
-    private function candidateQuery(User $user): Builder
+    private function candidateQuery(User $user, ?int $candidateId = null): Builder
     {
         return Candidate::withTrashed()
             ->with('branch:id,name')
             ->when(
                 ! $user->hasRole('admin'),
                 fn (Builder $query) => $this->scopeBranch($query, $user)
-            );
+            )
+            ->when($candidateId !== null, fn (Builder $query) => $query->whereKey($candidateId));
     }
 
     private function scopeBranch(Builder $query, User $user): Builder
@@ -119,7 +149,7 @@ class RecordsExportService
         return $query->where('branch_id', $user->branch_id);
     }
 
-    private function writeEmployeesCsv(string $path, User $user): void
+    private function writeEmployeesCsv(string $path, User $user, ?int $employeeId): void
     {
         $headers = array_values(array_filter(
             Schema::getColumnListing('users'),
@@ -130,8 +160,8 @@ class RecordsExportService
         ));
         array_push($headers, 'branch_name', 'manager_name', 'roles');
 
-        $this->writeCsv($path, $headers, function ($stream) use ($user, $headers): void {
-            $this->employeeQuery($user)->chunkById(500, function ($employees) use ($stream, $headers): void {
+        $this->writeCsv($path, $headers, function ($stream) use ($user, $headers, $employeeId): void {
+            $this->employeeQuery($user, $employeeId)->chunkById(500, function ($employees) use ($stream, $headers): void {
                 foreach ($employees as $employee) {
                     $values = [
                         ...$employee->getAttributes(),
@@ -148,15 +178,15 @@ class RecordsExportService
         });
     }
 
-    private function writeCandidatesCsv(string $path, User $user): void
+    private function writeCandidatesCsv(string $path, User $user, ?int $candidateId): void
     {
         $headers = [
             ...Schema::getColumnListing('candidates'),
             'branch_name',
         ];
 
-        $this->writeCsv($path, $headers, function ($stream) use ($user, $headers): void {
-            $this->candidateQuery($user)->chunkById(500, function ($candidates) use ($stream, $headers): void {
+        $this->writeCsv($path, $headers, function ($stream) use ($user, $headers, $candidateId): void {
+            $this->candidateQuery($user, $candidateId)->chunkById(500, function ($candidates) use ($stream, $headers): void {
                 foreach ($candidates as $candidate) {
                     $values = [
                         ...$candidate->getAttributes(),
@@ -175,7 +205,9 @@ class RecordsExportService
         string $path,
         string $workspace,
         ZipArchive $zip,
-        User $user
+        User $user,
+        ?int $employeeId,
+        ?int $candidateId
     ): void {
         $stream = fopen($path, 'wb');
         if ($stream === false) {
@@ -258,136 +290,147 @@ class RecordsExportService
                 ]);
             };
 
-            $this->employeeQuery($user)
-                ->whereNotNull('avatar')
-                ->chunkById(500, function ($employees) use ($addFile): void {
-                    foreach ($employees as $employee) {
-                        $addFile(
-                            'employee_avatar',
-                            $employee->id,
-                            null,
-                            $employee->id,
-                            'Employee avatar',
-                            basename($employee->avatar),
-                            'public',
-                            $employee->avatar,
-                            "documents/employees/{$employee->id}"
-                        );
-                    }
-                });
-
-            CandidateDocument::withTrashed()
-                ->with('documentRequirement:id,name')
-                ->whereHas('candidate', fn (Builder $query) => $this->scopeCandidateBranch($query, $user))
-                ->chunkById(500, function ($documents) use ($addFile): void {
-                    foreach ($documents as $document) {
-                        $addFile(
-                            'candidate_document',
-                            null,
-                            $document->candidate_id,
-                            $document->id,
-                            $document->documentRequirement?->name ?? 'Candidate document',
-                            $document->file_name,
-                            'public',
-                            $document->file_path,
-                            "documents/candidates/{$document->candidate_id}"
-                        );
-                    }
-                });
-
-            CandidateFormSubmission::query()
-                ->whereHas('candidate', fn (Builder $query) => $this->scopeCandidateBranch($query, $user))
-                ->chunkById(500, function ($submissions) use ($addFile): void {
-                    foreach ($submissions as $submission) {
-                        if ($submission->resume_path) {
+            if ($candidateId === null) {
+                $this->employeeQuery($user, $employeeId)
+                    ->whereNotNull('avatar')
+                    ->chunkById(500, function ($employees) use ($addFile): void {
+                        foreach ($employees as $employee) {
                             $addFile(
-                                'candidate_resume',
+                                'employee_avatar',
+                                $employee->id,
                                 null,
-                                $submission->candidate_id,
-                                $submission->id,
-                                'Candidate resume',
-                                $submission->resume_original_name ?: basename($submission->resume_path),
+                                $employee->id,
+                                'Employee avatar',
+                                basename($employee->avatar),
                                 'public',
-                                $submission->resume_path,
-                                "documents/candidates/{$submission->candidate_id}/submissions"
+                                $employee->avatar,
+                                "documents/employees/{$employee->id}"
                             );
                         }
+                    });
+            }
 
-                        foreach ($this->uploadedFiles($submission->submission_data ?? []) as $upload) {
+            if ($employeeId === null) {
+                CandidateDocument::withTrashed()
+                    ->with('documentRequirement:id,name')
+                    ->whereHas('candidate', fn (Builder $query) => $this->scopeCandidateBranch($query, $user, $candidateId))
+                    ->chunkById(500, function ($documents) use ($addFile): void {
+                        foreach ($documents as $document) {
                             $addFile(
-                                'candidate_form_upload',
+                                'candidate_document',
                                 null,
-                                $submission->candidate_id,
-                                $submission->id.'-'.$upload['field'],
-                                $upload['field'],
-                                $upload['name'] ?: basename($upload['path']),
+                                $document->candidate_id,
+                                $document->id,
+                                $document->documentRequirement?->name ?? 'Candidate document',
+                                $document->file_name,
                                 'public',
-                                $upload['path'],
-                                "documents/candidates/{$submission->candidate_id}/submissions"
+                                $document->file_path,
+                                "documents/candidates/{$document->candidate_id}"
                             );
                         }
-                    }
-                });
+                    });
 
-            CandidateOffer::withTrashed()
-                ->whereHas('candidate', fn (Builder $query) => $this->scopeCandidateBranch($query, $user))
-                ->whereNotNull('pdf_path')
-                ->chunkById(500, function ($offers) use ($addFile): void {
-                    foreach ($offers as $offer) {
-                        $addFile(
-                            'candidate_offer',
-                            null,
-                            $offer->candidate_id,
-                            $offer->id,
-                            'Candidate offer',
-                            basename($offer->pdf_path),
-                            'public',
-                            $offer->pdf_path,
-                            "documents/candidates/{$offer->candidate_id}/offers"
-                        );
-                    }
-                });
-
-            CandidateIntentLetter::query()
-                ->whereHas('candidate', fn (Builder $query) => $this->scopeCandidateBranch($query, $user))
-                ->chunkById(500, function ($letters) use ($addFile): void {
-                    foreach ($letters as $letter) {
-                        foreach ([
-                            'pdf_path' => 'Candidate intent letter',
-                            'acknowledged_pdf_path' => 'Acknowledged intent letter',
-                        ] as $field => $documentName) {
-                            if (! $letter->{$field}) {
-                                continue;
+                CandidateFormSubmission::query()
+                    ->whereHas('candidate', fn (Builder $query) => $this->scopeCandidateBranch($query, $user, $candidateId))
+                    ->chunkById(500, function ($submissions) use ($addFile): void {
+                        foreach ($submissions as $submission) {
+                            if ($submission->resume_path) {
+                                $addFile(
+                                    'candidate_resume',
+                                    null,
+                                    $submission->candidate_id,
+                                    $submission->id,
+                                    'Candidate resume',
+                                    $submission->resume_original_name ?: basename($submission->resume_path),
+                                    'public',
+                                    $submission->resume_path,
+                                    "documents/candidates/{$submission->candidate_id}/submissions"
+                                );
                             }
 
+                            foreach ($this->uploadedFiles($submission->submission_data ?? []) as $upload) {
+                                $addFile(
+                                    'candidate_form_upload',
+                                    null,
+                                    $submission->candidate_id,
+                                    $submission->id.'-'.$upload['field'],
+                                    $upload['field'],
+                                    $upload['name'] ?: basename($upload['path']),
+                                    'public',
+                                    $upload['path'],
+                                    "documents/candidates/{$submission->candidate_id}/submissions"
+                                );
+                            }
+                        }
+                    });
+
+                CandidateOffer::withTrashed()
+                    ->whereHas('candidate', fn (Builder $query) => $this->scopeCandidateBranch($query, $user, $candidateId))
+                    ->whereNotNull('pdf_path')
+                    ->chunkById(500, function ($offers) use ($addFile): void {
+                        foreach ($offers as $offer) {
                             $addFile(
-                                'candidate_intent_letter',
+                                'candidate_offer',
                                 null,
-                                $letter->candidate_id,
-                                $letter->id.'-'.$field,
-                                $documentName,
-                                basename($letter->{$field}),
-                                'local',
-                                $letter->{$field},
-                                "documents/candidates/{$letter->candidate_id}/intent-letters"
+                                $offer->candidate_id,
+                                $offer->id,
+                                'Candidate offer',
+                                basename($offer->pdf_path),
+                                'public',
+                                $offer->pdf_path,
+                                "documents/candidates/{$offer->candidate_id}/offers"
                             );
                         }
-                    }
-                });
+                    });
+
+                CandidateIntentLetter::query()
+                    ->whereHas('candidate', fn (Builder $query) => $this->scopeCandidateBranch($query, $user, $candidateId))
+                    ->chunkById(500, function ($letters) use ($addFile): void {
+                        foreach ($letters as $letter) {
+                            foreach ([
+                                'pdf_path' => 'Candidate intent letter',
+                                'acknowledged_pdf_path' => 'Acknowledged intent letter',
+                            ] as $field => $documentName) {
+                                if (! $letter->{$field}) {
+                                    continue;
+                                }
+
+                                $addFile(
+                                    'candidate_intent_letter',
+                                    null,
+                                    $letter->candidate_id,
+                                    $letter->id.'-'.$field,
+                                    $documentName,
+                                    basename($letter->{$field}),
+                                    'local',
+                                    $letter->{$field},
+                                    "documents/candidates/{$letter->candidate_id}/intent-letters"
+                                );
+                            }
+                        }
+                    });
+            }
         } finally {
             fclose($stream);
         }
     }
 
-    private function scopeCandidateBranch(Builder $query, User $user): Builder
-    {
+    private function scopeCandidateBranch(
+        Builder $query,
+        User $user,
+        ?int $candidateId = null
+    ): Builder {
         $query->withTrashed();
 
-        if ($user->hasRole('admin')) {
-            return $query;
+        if (! $user->hasRole('admin')) {
+            $this->scopeBranch($query, $user);
         }
 
-        return $this->scopeBranch($query, $user);
+        if ($candidateId !== null) {
+            $query->whereKey($candidateId);
+        }
+
+        return $query;
     }
 
     private function uploadedFiles(array $value, string $field = ''): array

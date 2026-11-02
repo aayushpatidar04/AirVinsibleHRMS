@@ -61,6 +61,31 @@ function recordsExportCandidate(Branch $branch, string $email): Candidate
     ]);
 }
 
+function recordsExportArchiveContents(string $archivePath): array
+{
+    $archive = new ZipArchive;
+    $opened = $archive->open($archivePath) === true;
+
+    try {
+        expect($opened)->toBeTrue();
+
+        $contents = [];
+        for ($index = 0; $index < $archive->numFiles; $index++) {
+            $name = $archive->getNameIndex($index);
+            $contents[$name] = $archive->getFromIndex($index);
+        }
+
+        return $contents;
+    } finally {
+        if ($opened) {
+            $archive->close();
+        }
+        if (is_file($archivePath)) {
+            unlink($archivePath);
+        }
+    }
+}
+
 test('users without documents export permission cannot view or download records', function () {
     $branch = recordsExportBranch('Export Branch', 'EXP');
     $employee = recordsExportUser(
@@ -142,4 +167,63 @@ test('hr export includes only branch employee and candidate data and archives up
             unlink($archivePath);
         }
     }
+});
+
+test('individual exports contain only the selected employee or candidate and their files', function () {
+    Storage::fake('public');
+
+    $branch = recordsExportBranch('Export Branch', 'EXP');
+    $otherBranch = recordsExportBranch('Other Branch', 'OTH');
+    $hr = recordsExportUser('hr_recruiter', $branch, 'individual-export-hr@example.test');
+    $employee = recordsExportUser('employee', $branch, 'selected-employee@example.test');
+    recordsExportUser('employee', $branch, 'other-employee@example.test');
+    $candidate = recordsExportCandidate($branch, 'selected-candidate@example.test');
+    $otherCandidate = recordsExportCandidate($branch, 'other-candidate@example.test');
+    recordsExportCandidate($otherBranch, 'outside-branch-candidate@example.test');
+
+    $avatarPath = "employee-avatars/{$employee->id}/avatar.png";
+    Storage::disk('public')->put($avatarPath, 'selected-employee-avatar');
+    $employee->forceFill(['avatar' => $avatarPath])->save();
+
+    $requirement = DocumentRequirement::query()->firstOrFail();
+    $documentPath = "candidate_documents/{$candidate->id}/identity.pdf";
+    Storage::disk('public')->put($documentPath, 'selected-candidate-document');
+    CandidateDocument::query()->create([
+        'candidate_id' => $candidate->id,
+        'document_requirement_id' => $requirement->id,
+        'file_name' => 'identity.pdf',
+        'file_path' => $documentPath,
+        'mime_type' => 'application/pdf',
+        'file_size' => 25,
+        'uploaded_by' => $hr->id,
+    ]);
+
+    $service = app(RecordsExportService::class);
+    $employeeContents = recordsExportArchiveContents(
+        $service->createEmployeeArchive($hr, $employee->id)
+    );
+    expect($employeeContents)->toHaveKey('employees.csv')
+        ->not->toHaveKey('candidates.csv')
+        ->and($employeeContents['employees.csv'])
+        ->toContain('selected-employee@example.test')
+        ->not->toContain('other-employee@example.test')
+        ->and($employeeContents)->toHaveKey('documents.csv')
+        ->and(collect($employeeContents)->contains('selected-employee-avatar'))->toBeTrue()
+        ->and(collect($employeeContents)->contains('selected-candidate-document'))->toBeFalse();
+
+    $candidateContents = recordsExportArchiveContents(
+        $service->createCandidateArchive($hr, $candidate->id)
+    );
+    expect($candidateContents)->toHaveKey('candidates.csv')
+        ->not->toHaveKey('employees.csv')
+        ->and($candidateContents['candidates.csv'])
+        ->toContain('selected-candidate@example.test')
+        ->not->toContain('other-candidate@example.test')
+        ->not->toContain('outside-branch-candidate@example.test')
+        ->and(collect($candidateContents)->contains('selected-candidate-document'))->toBeTrue()
+        ->and(collect($candidateContents)->contains('selected-employee-avatar'))->toBeFalse();
+
+    $this->actingAs($hr)
+        ->get(route('records.export.candidate', $otherCandidate->id))
+        ->assertNotFound();
 });

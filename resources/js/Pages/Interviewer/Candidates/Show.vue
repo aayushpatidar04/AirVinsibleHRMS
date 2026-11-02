@@ -2,11 +2,13 @@
 import AppLayout from '@/Layouts/AppLayout.vue'
 import StatusBadge from '@/Components/Common/StatusBadge.vue'
 import Modal from '@/Components/Common/Modal.vue'
-import { Link, useForm } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { Link, useForm, usePage } from '@inertiajs/vue3'
+import { computed, ref } from 'vue'
 import InterviewTimeline from '@/Components/Recruitment/InterviewTimeline.vue'
 
 const props = defineProps({ candidate: Object, progress_history: Array, my_active_progress: Object, available_interviewers: Array, schedules: Array })
+const page = usePage()
+const canExport = computed(() => page.props.auth?.permissions?.includes('documents.export') ?? false)
 const expanded = ref(null)
 const showReassign = ref(false)
 const reassignForm = useForm({ new_interviewer_id: '' })
@@ -37,8 +39,10 @@ const getRoundSchedule = (roundId) => {
                             candidate.branch }}</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
                     <StatusBadge :status="candidate.current_status" />
+                    <a v-if="canExport" :href="route('records.export.candidate', candidate.id)"
+                        class="btn-secondary text-sm">Export Candidate</a>
                     <Link v-if="my_active_progress"
                         :href="route('interviewer.interviews.show', { candidate: candidate.id, round: my_active_progress.round_id })"
                         class="btn-primary text-sm">

@@ -106,6 +106,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/records/export/download', [RecordsExportController::class, 'download'])
         ->middleware('permission:documents.export')
         ->name('records.export.download');
+    Route::get('/records/export/employees/{employee}', [RecordsExportController::class, 'downloadEmployee'])
+        ->middleware('permission:documents.export')
+        ->name('records.export.employee');
+    Route::get('/records/export/candidates/{candidate}', [RecordsExportController::class, 'downloadCandidate'])
+        ->middleware('permission:documents.export')
+        ->name('records.export.candidate');
 
     Route::middleware('role:admin')
         ->prefix('admin')

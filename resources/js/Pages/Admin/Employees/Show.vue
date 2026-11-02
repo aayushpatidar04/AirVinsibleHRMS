@@ -2,7 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue'
 import StatusBadge from '@/Components/Common/StatusBadge.vue'
 import Modal from '@/Components/Common/Modal.vue'
-import { useForm, Link, router } from '@inertiajs/vue3'
+import { useForm, Link, router, usePage } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 
 const props = defineProps({
@@ -13,6 +13,10 @@ const props = defineProps({
     branches: Array,
     interview_rounds: Array, // NEW
 })
+
+const page = usePage()
+const permissions = computed(() => page.props.auth?.permissions ?? [])
+const canExport = computed(() => permissions.value.includes('documents.export'))
 
 const showResetModal = ref(false)
 const showRoleModal = ref(false)
@@ -118,6 +122,8 @@ const toggleRound = (roundId) => {
                     </div>
                 </div>
                 <div class="flex gap-2 flex-wrap">
+                    <a v-if="canExport" :href="route('records.export.employee', employee.id)"
+                        class="btn-secondary text-sm">Export Employee</a>
                     <button @click="toggleInterviewer" :class="employee.can_interview ? 'btn-secondary' : 'btn-teal'"
                         class="text-sm">
                         {{ employee.can_interview ? '🔕 Remove Interviewer' : '🎙 Make Interviewer' }}

@@ -391,12 +391,19 @@ const minDateTime = computed(() => {
                         </p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
                     <StatusBadge :status="candidate.current_status" />
                     <StatusBadge
                         :status="candidate.final_status"
                         type="final"
                     />
+                    <a
+                        v-if="can('documents.export')"
+                        :href="route('records.export.candidate', candidate.id)"
+                        class="btn-secondary text-sm"
+                    >
+                        Export Candidate
+                    </a>
                     <button
                         v-if="registration_form"
                         @click="showRegPanel = true"
