@@ -2738,10 +2738,10 @@ class CandidateOfferController extends Controller
                             'id',
                             $rootOfferId
                         )
-                        ->orWhere(
-                            'parent_offer_id',
-                            $rootOfferId
-                        )
+                        // ->orWhere(
+                        //     'parent_offer_id',
+                        //     $rootOfferId
+                        // )
                         ->orWhere(
                             'offer_number',
                             $offer->offer_number
