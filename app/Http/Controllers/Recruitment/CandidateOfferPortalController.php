@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Recruitment\AcceptCandidateOfferRequest;
 use App\Http\Requests\Recruitment\DeclineCandidateOfferRequest;
 use App\Models\CandidateOffer;
+use App\Models\User;
+use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Hash;
 use App\Models\OfferSalaryComponent;
 use App\Services\Recruitment\OfferPortalTokenService;
 use App\Services\Recruitment\OfferSalaryCalculator;
@@ -240,6 +243,63 @@ class CandidateOfferPortalController extends Controller
             'success',
             'Your response has been recorded.'
         );
+    }
+
+    public function convertToEmployee(Request $request, string $token): RedirectResponse
+    {
+        $offer = $this->resolveOffer($token);
+
+        if (!$offer->canReceiveCandidateResponse() || $offer->status !== CandidateOffer::STATUS_ACCEPTED) {
+            return back()->with('error', 'Offer must be accepted before converting to employee.');
+        }
+
+        $data = $request->validate([
+            'employee_id' => 'required|string|max:50|unique:users,employee_id',
+            'date_of_joining' => 'required|date',
+            'designation' => 'required|string|max:255',
+            'department' => 'required|string|max:100',
+            'branch_id' => 'required|exists:branches,id',
+            'reporting_to' => 'nullable|exists:users,id',
+            'employment_type' => 'required|in:full_time,part_time,contract,intern',
+            'phone' => 'required|string|max:20|unique:users,phone',
+            'date_of_birth' => 'nullable|date',
+            'address' => 'nullable|string|max:500',
+        ]);
+
+        // Check if candidate already converted
+        if ($offer->candidate->user_id) {
+            return back()->with('error', 'Candidate is already converted to an employee.');
+        }
+
+        DB::transaction(function () use ($offer, $data): void {
+            $user = User::create([
+                'first_name' => $offer->candidate->first_name,
+                'last_name' => $offer->candidate->last_name,
+                'email' => $offer->candidate->email,
+                'phone' => $data['phone'],
+                'employee_id' => $data['employee_id'],
+                'password' => Hash::make('Welcome123!'),
+                'designation' => $data['designation'],
+                'department' => $data['department'],
+                'branch_id' => $data['branch_id'],
+                'reporting_to' => $data['reporting_to'] ?? null,
+                'date_of_joining' => $data['date_of_joining'],
+                'date_of_birth' => $data['date_of_birth'] ?? null,
+                'employment_type' => $data['employment_type'],
+                'employment_status' => 'active',
+                'is_active' => true,
+            ]);
+
+            $user->assignRole('employee');
+
+            $offer->candidate->update([
+                'user_id' => $user->id,
+                'final_status' => 'hired',
+                'current_status' => 'converted_to_employee',
+            ]);
+        });
+
+        return back()->with('success', 'Candidate converted to employee successfully. Employee ID: ' . $data['employee_id']);
     }
 
     public function downloadPdf(

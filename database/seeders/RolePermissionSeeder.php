@@ -148,11 +148,12 @@ class RolePermissionSeeder extends Seeder
             'candidates.final-decision',
             'candidates.view-salary',
             'candidates.update-salary',
-            'candidates.export',
+              'candidates.export',
+              'candidates.convert',
 
-            /*
-             |--------------------------------------------------------------------------
-             | Candidate Registration Forms
+              /*
+               |--------------------------------------------------------------------------
+               | Candidate Registration Forms
              |--------------------------------------------------------------------------
              */
             'registration-forms.view',
@@ -440,10 +441,11 @@ class RolePermissionSeeder extends Seeder
             'candidates.place-on-hold',
             'candidates.final-decision',
             'candidates.view-salary',
-            'candidates.update-salary',
-            'candidates.export',
+              'candidates.update-salary',
+              'candidates.export',
+              'candidates.convert',
 
-            'registration-forms.view',
+              'registration-forms.view',
             'qr-codes.view',
             'qr-codes.download',
 

@@ -157,36 +157,36 @@
                             </table>
 
                             @if($portalUrl)
-                                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0"
-                                                        style="margin-top: 28px;">
-                                                        <tr>
-                                                            <td style="
-                                            border-radius: 10px;
-                                            background-color: #4f46e5;
-                                        ">
-                                                                <a href="{{ $portalUrl }}" target="_blank" style="
-                                                display: inline-block;
-                                                padding: 13px 22px;
-                                                color: #ffffff;
-                                                text-decoration: none;
-                                                font-size: 14px;
-                                                font-weight: bold;
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0"
+                                    style="margin-top: 28px;">
+                                    <tr>
+                                        <td style="
+                                                border-radius: 10px;
+                                                background-color: #4f46e5;
                                             ">
-                                                                    Review and Respond to Offer
-                                                                </a>
-                                                            </td>
-                                                        </tr>
-                                                    </table>
+                                            <a href="{{ $portalUrl }}" target="_blank" style="
+                                                    display: inline-block;
+                                                    padding: 13px 22px;
+                                                    color: #ffffff;
+                                                    text-decoration: none;
+                                                    font-size: 14px;
+                                                    font-weight: bold;
+                                                ">
+                                                Review and Respond to Offer
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
 
-                                                    <p style="
-                                    margin: 18px 0 0;
-                                    font-size: 12px;
-                                    line-height: 1.6;
-                                    color: #6b7280;
-                                ">
-                                                        This link is private and intended only for you.
-                                                        Please do not forward it to anyone.
-                                                    </p>
+                                <p style="
+                                        margin: 18px 0 0;
+                                        font-size: 12px;
+                                        line-height: 1.6;
+                                        color: #6b7280;
+                                    ">
+                                    This link is private and intended only for you.
+                                    Please do not forward it to anyone.
+                                </p>
                             @endif
 
                             <p style="

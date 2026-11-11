@@ -18,6 +18,7 @@ import {
     MapPin,
     ShieldCheck,
     ThumbsDown,
+    UserPlus,
     WalletCards,
 } from "lucide-vue-next";
 
@@ -55,6 +56,20 @@ const props = defineProps({
 
 const showAcceptModal = ref(false);
 const showDeclineModal = ref(false);
+const showConvertModal = ref(false);
+
+const convertForm = useForm({
+    employee_id: "",
+    date_of_joining: "",
+    designation: "",
+    department: "",
+    branch_id: "",
+    reporting_to: "",
+    employment_type: "full_time",
+    phone: props.candidate.phone ?? "",
+    date_of_birth: "",
+    address: "",
+});
 
 const acceptForm = useForm({
     candidate_name:
@@ -140,6 +155,19 @@ function acceptOffer() {
 
             onSuccess: () => {
                 showAcceptModal.value = false;
+            },
+        },
+    );
+}
+
+function convertToEmployee() {
+    convertForm.post(
+        props.portal.routes.convert_to_employee,
+        {
+            preserveScroll: true,
+
+            onSuccess: () => {
+                showConvertModal.value = false;
             },
         },
     );
@@ -755,6 +783,22 @@ function label(value) {
 
                                     Decline Offer
                                 </button>
+
+                                <button
+                                    v-if="portal.response === 'accepted'"
+                                    type="button"
+                                    class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700"
+                                    @click="
+                                        showConvertModal =
+                                            true
+                                    "
+                                >
+                                    <UserPlus
+                                        class="h-5 w-5"
+                                    />
+
+                                    Convert to Employee
+                                </button>
                             </template>
 
                             <template v-else>
@@ -911,6 +955,238 @@ function label(value) {
         </ResponseModal>
 
         <ResponseModal
+        <ResponseModal
+            :show="showConvertModal"
+            title="Convert to Employee"
+            description="Please provide employee details to create the employee record."
+            confirm-text="Convert to Employee"
+            confirm-classes="bg-indigo-600 hover:bg-indigo-700"
+            :processing="convertForm.processing"
+            @close="
+                showConvertModal = false
+            "
+            @confirm="convertToEmployee"
+        >
+            <div class="space-y-4">
+                <div>
+                    <label
+                        class="mb-1.5 block text-sm font-medium text-slate-700"
+                    >
+                        Employee ID
+                    </label>
+
+                    <input
+                        v-model="
+                            convertForm.employee_id
+                        "
+                        type="text"
+                        class="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    />
+
+                    <p
+                        v-if="
+                            convertForm.errors
+                                .employee_id
+                        "
+                        class="mt-1.5 text-sm text-red-600"
+                    >
+                        {{ convertForm.errors.employee_id }}
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="mb-1.5 block text-sm font-medium text-slate-700"
+                        >
+                            Designation
+                        </label>
+
+                        <input
+                            v-model="
+                                convertForm.designation
+                                "
+                            type="text"
+                            class="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+
+                        <p
+                            v-if="
+                                convertForm.errors
+                                    .designation
+                            "
+                            class="mt-1.5 text-sm text-red-600"
+                        >
+                            {{ convertForm.errors.designation }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <label
+                            class="mb-1.5 block text-sm font-medium text-slate-700"
+                        >
+                            Department
+                        </label>
+
+                        <input
+                            v-model="
+                                convertForm.department
+                                "
+                            type="text"
+                            class="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+
+                        <p
+                            v-if="
+                                convertForm.errors
+                                    .department
+                            "
+                            class="mt-1.5 text-sm text-red-600"
+                        >
+                            {{ convertForm.errors.department }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="mb-1.5 block text-sm font-medium text-slate-700"
+                        >
+                            Joining Date
+                        </label>
+
+                        <input
+                            v-model="
+                                convertForm.date_of_joining
+                                "
+                            type="date"
+                            class="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+
+                        <p
+                            v-if="
+                                convertForm.errors
+                                    .date_of_joining
+                            "
+                            class="mt-1.5 text-sm text-red-600"
+                        >
+                            {{ convertForm.errors.date_of_joining }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <label
+                            class="mb-1.5 block text-sm font-medium text-slate-700"
+                        >
+                            Employment Type
+                        </label>
+
+                        <select
+                            v-model="
+                                convertForm.employment_type
+                                "
+                            class="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        >
+                            <option value="full_time">Full Time</option>
+                            <option value="part_time">Part Time</option>
+                            <option value="contract">Contract</option>
+                            <option value="intern">Intern</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label
+                        class="mb-1.5 block text-sm font-medium text-slate-700"
+                    >
+                        Phone
+                    </label>
+
+                    <input
+                        v-model="
+                            convertForm.phone
+                        "
+                        type="tel"
+                        class="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    />
+
+                    <p
+                        v-if="
+                            convertForm.errors
+                                .phone
+                        "
+                        class="mt-1.5 text-sm text-red-600"
+                    >
+                        {{ convertForm.errors.phone }}
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="mb-1.5 block text-sm font-medium text-slate-700"
+                        >
+                            Date of Birth
+                        </label>
+
+                        <input
+                            v-model="
+                                convertForm.date_of_birth
+                                "
+                            type="date"
+                            class="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                            class="mb-1.5 block text-sm font-medium text-slate-700"
+                        >
+                            Branch
+                        </label>
+
+                        <select
+                            v-model="
+                                convertForm.branch_id
+                                "
+                            class="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        >
+                            <option
+                                v-for="(branch, index) in props.candidate.branch ? [props.candidate.branch] : []"
+                                :key="index"
+                                :value="branch.id"
+                            >
+                                {{ branch.name }}
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label
+                        class="mb-1.5 block text-sm font-medium text-slate-700"
+                    >
+                        Address
+                    </label>
+
+                    <textarea
+                        v-model="
+                            convertForm.address
+                        "
+                        rows="3"
+                        class="block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    ></textarea>
+                </div>
+
+                <p class="text-xs text-slate-500">
+                    A user account will be created for the employee with a default
+                    password. They will need to reset it on first login.
+                </p>
+            </div>
+        </ResponseModal>
+
+
             :show="showDeclineModal"
             title="Decline employment offer"
             description="Please confirm your decision and provide a reason."

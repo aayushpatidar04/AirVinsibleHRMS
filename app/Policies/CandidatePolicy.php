@@ -138,6 +138,12 @@ class CandidatePolicy
         return $this->view($user, $candidate);
     }
 
+    public function convertToEmployee(User $user, Candidate $candidate): bool
+    {
+        return $user->can('candidates.convert')
+            && $this->belongsToAccessibleBranch($user, $candidate);
+    }
+
     private function belongsToAccessibleBranch(
         User $user,
         Candidate $candidate

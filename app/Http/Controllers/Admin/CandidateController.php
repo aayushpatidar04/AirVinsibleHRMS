@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\InterviewScheduledMail;
 use App\Models\Branch;
 use App\Models\Candidate;
+use App\Models\CandidateOffer;
 use App\Models\DocumentRequirement;
 use App\Models\CandidateRoundProgress;
 use App\Models\InterviewRound;
@@ -14,7 +15,11 @@ use App\Models\User;
 use App\Services\CandidateScorecardService;
 use App\Services\InterviewHistoryService;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Spatie\Permission\Models\Role;
 use Inertia\Inertia;
 
 class CandidateController extends Controller
@@ -272,11 +277,16 @@ class CandidateController extends Controller
         return Inertia::render('Admin/Candidates/Show', [
             'documents' => $documents,
             'documentRequirements' => $documentRequirements,
+            'branches' => Branch::active()->orderBy('name')->get()->map(fn($b) => [
+                'id' => $b->id,
+                'name' => $b->name,
+            ]),
             'candidate' => [
                 'id' => $candidate->id,
                 'name' => $candidate->full_name,
                 'email' => $candidate->email,
                 'phone' => $candidate->phone,
+                'user_id' => $candidate->user_id,
                 'position' => $candidate->position_applied,
                 'profile_category' => $candidate->profile_category,
                 'profile_label' => $candidate->getProfileCategoryLabel(),
@@ -572,6 +582,68 @@ class CandidateController extends Controller
         $this->authorize('delete', $candidate);
         $candidate->delete();
         return redirect()->route('recruitment.candidates.index')->with('success', 'Candidate removed.');
+    }
+
+    /**
+     * Convert an accepted candidate to an employee.
+     */
+    public function convertToEmployee(Candidate $candidate, Request $request): RedirectResponse
+    {
+        $this->authorize('convertToEmployee', $candidate);
+
+        // Check if candidate already converted
+        if ($candidate->user_id) {
+            return back()->with('error', 'Candidate is already converted to an employee.');
+        }
+
+        // Check if there is an accepted offer
+        $offer = $candidate->latestOffer;
+        if (!$offer || $offer->status !== CandidateOffer::STATUS_ACCEPTED) {
+            return back()->with('error', 'Candidate must have an accepted offer before converting to employee.');
+        }
+
+        $data = $request->validate([
+            'employee_id' => 'required|string|max:50|unique:users,employee_id',
+            'date_of_joining' => 'required|date',
+            'designation' => 'required|string|max:255',
+            'department' => 'required|string|max:100',
+            'branch_id' => 'required|exists:branches,id',
+            'reporting_to' => 'nullable|exists:users,id',
+            'employment_type' => 'required|in:full_time,part_time,contract,intern',
+            'phone' => 'required|string|max:20|unique:users,phone',
+            'date_of_birth' => 'nullable|date',
+            'address' => 'nullable|string|max:500',
+        ]);
+
+        DB::transaction(function () use ($candidate, $data): void {
+            $user = User::create([
+                'first_name' => $candidate->first_name,
+                'last_name' => $candidate->last_name,
+                'email' => $candidate->email,
+                'phone' => $data['phone'],
+                'employee_id' => $data['employee_id'],
+                'password' => Hash::make('Welcome123!'),
+                'designation' => $data['designation'],
+                'department' => $data['department'],
+                'branch_id' => $data['branch_id'],
+                'reporting_to' => $data['reporting_to'] ?? null,
+                'date_of_joining' => $data['date_of_joining'],
+                'date_of_birth' => $data['date_of_birth'] ?? null,
+                'employment_type' => $data['employment_type'],
+                'employment_status' => 'active',
+                'is_active' => true,
+            ]);
+
+            $user->assignRole('employee');
+
+            $candidate->update([
+                'user_id' => $user->id,
+                'final_status' => 'hired',
+                'current_status' => 'converted_to_employee',
+            ]);
+        });
+
+        return back()->with('success', 'Candidate converted to employee successfully. Employee ID: ' . $data['employee_id']);
     }
 
     public function scheduleInterview(Request $request, Candidate $candidate, InterviewRound $round)

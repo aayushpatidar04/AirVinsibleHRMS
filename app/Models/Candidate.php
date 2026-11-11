@@ -81,6 +81,7 @@ class Candidate extends Model
         'registration_date',
         'approval_status',
         'old_employee_id',
+        'user_id',
         'approval_notes',
         'approved_at',
         'approved_by',

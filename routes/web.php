@@ -26,6 +26,10 @@ use App\Http\Controllers\Recruitment\CandidateIntentLetterController;
 use App\Http\Controllers\Recruitment\CandidateIntentLetterPortalController;
 use App\Http\Controllers\Recruitment\InterviewDashboardController;
 use App\Http\Controllers\RecordsExportController;
+use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\HR\AttendanceController;
+use App\Http\Controllers\HR\LeaveController;
+use App\Http\Controllers\HR\PayrollController;
 
 /*
 |--------------------------------------------------------------------------
@@ -193,7 +197,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->middleware('permission:roles.delete')
                 ->name('roles.destroy');
 
-        });
+
+
+            // Clients
+            Route::resource('clients', ClientController::class);
+            });
 
     /*
     |--------------------------------------------------------------------------
@@ -306,15 +314,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->middleware('permission:candidates.final-decision')
                 ->name('candidates.update-status');
 
-            Route::delete(
-                '/candidates/{candidate}',
-                [AdminCandidateController::class, 'destroy']
-            )
-                ->middleware('permission:candidates.delete')
-                ->name('candidates.destroy');
+              Route::delete(
+                  '/candidates/{candidate}',
+                  [AdminCandidateController::class, 'destroy']
+              )
+                  ->middleware('permission:candidates.delete')
+                  ->name('candidates.destroy');
 
-            Route::post(
-                '/candidates/{candidate}/rounds/{round}/schedule',
+              Route::post(
+                  '/candidates/{candidate}/convert-to-employee',
+                  [AdminCandidateController::class, 'convertToEmployee']
+              )
+                  ->middleware('permission:candidates.convert')
+                  ->name('candidates.convert-to-employee');
+
+              Route::post(
+                  '/candidates/{candidate}/rounds/{round}/schedule',
                 [AdminCandidateController::class, 'scheduleInterview']
             )
                 ->middleware('permission:interviews.schedule')
@@ -585,7 +600,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 '/dashboard',
                 [HrDashboard::class, 'index']
             )->name('dashboard');
-        });
+
+
+            // Attendance
+            Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index')->middleware('permission:attendance.view');
+            Route::get('/attendance/{attendance}', [AttendanceController::class, 'show'])->name('attendance.show')->middleware('permission:attendance.view');
+            Route::post('/attendance/punch', [AttendanceController::class, 'punch'])->name('attendance.punch')->middleware('permission:attendance.record');
+            Route::get('/attendance/corrections', [AttendanceController::class, 'corrections'])->name('attendance.corrections')->middleware('permission:attendance.manage');
+            Route::post('/attendance/corrections/{correction}/approve', [AttendanceController::class, 'approveCorrection'])->name('attendance.corrections.approve')->middleware('permission:attendance.manage');
+
+            // Leave
+            Route::get('/leave', [LeaveController::class, 'index'])->name('leave.index')->middleware('permission:leave.view');
+            Route::get('/leave/types', [LeaveController::class, 'types'])->name('leave.types')->middleware('permission:leave.manage');
+            Route::post('/leave/types', [LeaveController::class, 'storeType'])->name('leave.types.store')->middleware('permission:leave.manage');
+            Route::get('/leave/balances', [LeaveController::class, 'balances'])->name('leave.balances')->middleware('permission:leave.view');
+            Route::post('/leave/apply', [LeaveController::class, 'apply'])->name('leave.apply')->middleware('permission:leave.apply');
+            Route::post('/leave/{leave}/approve', [LeaveController::class, 'approve'])->name('leave.approve')->middleware('permission:leave.manage');
+
+            // Payroll
+            Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index')->middleware('permission:payroll.view');
+            Route::get('/payroll/periods', [PayrollController::class, 'periods'])->name('payroll.periods')->middleware('permission:payroll.manage');
+            Route::post('/payroll/periods', [PayrollController::class, 'storePeriod'])->name('payroll.periods.store')->middleware('permission:payroll.manage');
+            Route::get('/payroll/components', [PayrollController::class, 'components'])->name('payroll.components')->middleware('permission:payroll.manage');
+            Route::post('/payroll/components', [PayrollController::class, 'storeComponent'])->name('payroll.components.store')->middleware('permission:payroll.manage');
+            Route::get('/payroll/{payroll}/calculations', [PayrollController::class, 'calculations'])->name('payroll.calculations')->middleware('permission:payroll.view');
+            Route::get('/payroll/payslips', [PayrollController::class, 'payslips'])->name('payroll.payslips')->middleware('permission:payroll.view');
+            Route::post('/payroll/payslips/{payslip}/publish', [PayrollController::class, 'publishPayslip'])->name('payroll.payslips.publish')->middleware('permission:payroll.manage');
+                });
 
     /*
     |----------------------------------------------------------------------
@@ -636,6 +677,14 @@ Route::prefix('candidate-offer')
                 'decline',
             ]
         )->name('decline');
+
+        Route::post(
+            '{token}/convert-to-employee',
+            [
+                CandidateOfferPortalController::class,
+                'convertToEmployee',
+            ]
+        )->name('convert-to-employee');
     });
 
 Route::prefix('candidate-intent')

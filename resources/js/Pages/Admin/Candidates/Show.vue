@@ -38,6 +38,11 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+
+    branches: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const showStatusModal = ref(false);
@@ -53,6 +58,7 @@ const can = (permission) => {
 const showApprovalModal = ref(false);
 const showReassignModal = ref(false);
 const showRegPanel = ref(false);
+const showConvertModal = ref(false);
 const selectedRound = ref(null);
 
 const statusForm = useForm({
@@ -239,6 +245,35 @@ const submitReassign = () => {
                 showReassignModal.value = false;
                 selectedRound.value = null;
                 reassignForm.reset();
+            },
+        },
+    );
+};
+
+// Convert to Employee
+const convertForm = useForm({
+    employee_id: "",
+    date_of_joining: "",
+    designation: "",
+    department: "",
+    branch_id: "",
+    reporting_to: "",
+    employment_type: "full_time",
+    phone: "",
+    date_of_birth: "",
+    address: "",
+});
+
+const submitConvert = () => {
+    convertForm.post(
+        route("recruitment.candidates.convert-to-employee", props.candidate.id),
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                showConvertModal.value = false;
+                convertForm.reset();
+                // Refresh page to reflect conversion
+                window.location.reload();
             },
         },
     );
@@ -491,6 +526,17 @@ const minDateTime = computed(() => {
                     >
                         View Offer
                     </Link>
+                    <button
+                        v-if="
+                            candidate.active_offer &&
+                            candidate.active_offer.status === 'accepted' &&
+                            !candidate.user_id
+                        "
+                        @click="showConvertModal = true"
+                        class="btn-primary bg-green-600 hover:bg-green-700 text-sm"
+                    >
+                        👤 Convert to Employee
+                    </button>
                 </div>
             </div>
 
@@ -2110,6 +2156,205 @@ const minDateTime = computed(() => {
                             : getRoundSchedule(selectedRound?.round_id)
                               ? "Update & Notify"
                               : "Schedule & Send Email"
+                    }}
+                </button>
+            </template>
+        </Modal>
+
+        <!-- Convert to Employee Modal -->
+        <Modal
+            :show="showConvertModal"
+            title="Convert to Employee"
+            max-width="lg"
+            @close="showConvertModal = false"
+        >
+            <div class="space-y-4">
+                <div
+                    class="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800"
+                >
+                    This will convert the selected candidate to an employee.
+                    An employee record will be created with the details below.
+                </div>
+                <div>
+                    <label class="label">
+                        Employee ID <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        v-model="convertForm.employee_id"
+                        type="text"
+                        class="input-field"
+                        placeholder="e.g. EMP-001"
+                    />
+                    <p v-if="convertForm.errors.employee_id" class="error">
+                        {{ convertForm.errors.employee_id }}
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="label">
+                            Designation <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            v-model="convertForm.designation"
+                            type="text"
+                            class="input-field"
+                            placeholder="e.g. Senior Advisor"
+                        />
+                        <p v-if="convertForm.errors.designation" class="error">
+                            {{ convertForm.errors.designation }}
+                        </p>
+                    </div>
+                    <div>
+                        <label class="label">
+                            Department <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            v-model="convertForm.department"
+                            type="text"
+                            class="input-field"
+                            placeholder="e.g. Sales"
+                        />
+                        <p v-if="convertForm.errors.department" class="error">
+                            {{ convertForm.errors.department }}
+                        </p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="label">
+                            Date of Joining <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            v-model="convertForm.date_of_joining"
+                            type="date"
+                            class="input-field"
+                        />
+                        <p
+                            v-if="convertForm.errors.date_of_joining"
+                            class="error"
+                        >
+                            {{ convertForm.errors.date_of_joining }}
+                        </p>
+                    </div>
+                    <div>
+                        <label class="label">
+                            Employment Type <span class="text-red-500">*</span>
+                        </label>
+                        <select
+                            v-model="convertForm.employment_type"
+                            class="input-field"
+                        >
+                            <option value="full_time">Full Time</option>
+                            <option value="part_time">Part Time</option>
+                            <option value="contract">Contract</option>
+                            <option value="intern">Intern</option>
+                        </select>
+                        <p
+                            v-if="convertForm.errors.employment_type"
+                            class="error"
+                        >
+                            {{ convertForm.errors.employment_type }}
+                        </p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="label">
+                            Branch <span class="text-red-500">*</span>
+                        </label>
+                        <select
+                            v-model="convertForm.branch_id"
+                            class="input-field"
+                        >
+                            <option value="">Select branch</option>
+                            <option
+                                v-for="b in branches"
+                                :key="b.id"
+                                :value="b.id"
+                            >
+                                {{ b.name }}
+                            </option>
+                        </select>
+                        <p v-if="convertForm.errors.branch_id" class="error">
+                            {{ convertForm.errors.branch_id }}
+                        </p>
+                    </div>
+                    <div>
+                        <label class="label">Reporting To</label>
+                        <select
+                            v-model="convertForm.reporting_to"
+                            class="input-field"
+                        >
+                            <option value="">None</option>
+                            <!-- Manager options would be loaded from props or API -->
+                        </select>
+                        <p
+                            v-if="convertForm.errors.reporting_to"
+                            class="error"
+                        >
+                            {{ convertForm.errors.reporting_to }}
+                        </p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="label">
+                            Phone <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            v-model="convertForm.phone"
+                            type="text"
+                            class="input-field"
+                            placeholder="e.g. +91 9876543210"
+                        />
+                        <p v-if="convertForm.errors.phone" class="error">
+                            {{ convertForm.errors.phone }}
+                        </p>
+                    </div>
+                    <div>
+                        <label class="label">Date of Birth</label>
+                        <input
+                            v-model="convertForm.date_of_birth"
+                            type="date"
+                            class="input-field"
+                        />
+                        <p
+                            v-if="convertForm.errors.date_of_birth"
+                            class="error"
+                        >
+                            {{ convertForm.errors.date_of_birth }}
+                        </p>
+                    </div>
+                </div>
+                <div>
+                    <label class="label">Address</label>
+                    <textarea
+                        v-model="convertForm.address"
+                        rows="3"
+                        class="input-field"
+                        placeholder="Employee address..."
+                    />
+                    <p v-if="convertForm.errors.address" class="error">
+                        {{ convertForm.errors.address }}
+                    </p>
+                </div>
+            </div>
+            <template #footer>
+                <button
+                    @click="showConvertModal = false"
+                    class="btn-secondary"
+                >
+                    Cancel
+                </button>
+                <button
+                    @click="submitConvert"
+                    :disabled="convertForm.processing"
+                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-medium transition disabled:opacity-50"
+                >
+                    {{
+                        convertForm.processing
+                            ? "Converting..."
+                            : "✓ Confirm Convert to Employee"
                     }}
                 </button>
             </template>
