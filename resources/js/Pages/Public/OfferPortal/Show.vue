@@ -955,7 +955,6 @@ function label(value) {
         </ResponseModal>
 
         <ResponseModal
-        <ResponseModal
             :show="showConvertModal"
             title="Convert to Employee"
             description="Please provide employee details to create the employee record."
@@ -1187,6 +1186,7 @@ function label(value) {
         </ResponseModal>
 
 
+        <ResponseModal
             :show="showDeclineModal"
             title="Decline employment offer"
             description="Please confirm your decision and provide a reason."

@@ -6,23 +6,13 @@ import UserMenu from "@/Layouts/Partials/UserMenu.vue";
 
 const props = defineProps({
     configuration: { type: Object, required: true },
+    navigation: { type: Array, required: true },
     open: { type: Boolean, default: false },
 });
 const emit = defineEmits(["close"]);
 
 const page = usePage();
-const permissions = computed(() => page.props.auth?.permissions ?? []);
 const currentPath = computed(() => page.url?.split("?")[0] ?? "");
-
-const hasPermission = (permission) => !permission || permissions.value.includes(permission);
-const routeExists = (name) => typeof route === "function" && route().has(name);
-
-const navigation = computed(() =>
-    props.configuration.navigation
-        .filter((item) => hasPermission(item.permission))
-        .filter((item) => routeExists(item.route))
-        .map((item) => ({ ...item, href: route(item.route) }))
-);
 
 const normalizePath = (url) => {
     try {

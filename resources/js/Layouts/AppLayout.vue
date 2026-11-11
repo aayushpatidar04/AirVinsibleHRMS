@@ -4,15 +4,10 @@ import { computed, ref } from "vue";
 import AppSidebar from "@/Layouts/Partials/AppSidebar.vue";
 import AppHeader from "@/Layouts/Partials/AppHeader.vue";
 
-import { panelConfigurations } from "@/Config/navigation";
 import { usePanel } from "@/Composables/usePanel";
 
 const sideOpen = ref(false);
-const { resolvedPanel } = usePanel();
-
-const configuration = computed(
-    () => panelConfigurations[resolvedPanel.value] ?? panelConfigurations.employee
-);
+const { resolvedPanel, navigation, configuration } = usePanel();
 </script>
 
 <template>
@@ -23,7 +18,7 @@ const configuration = computed(
                 @click="sideOpen = false" />
         </Transition>
 
-        <AppSidebar :configuration="configuration" :open="sideOpen" @close="sideOpen = false" />
+        <AppSidebar :configuration="configuration" :navigation="navigation" :open="sideOpen" @close="sideOpen = false" />
 
         <div class="flex min-w-0 flex-1 flex-col md:pl-60">
             <AppHeader :configuration="configuration" @open-sidebar="sideOpen = true" />

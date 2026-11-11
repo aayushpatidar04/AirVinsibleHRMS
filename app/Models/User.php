@@ -38,6 +38,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'employment_type',
         'employment_status',
         'branch_id',
+        'client_id',
         'reporting_to',
         'avatar',
         'emergency_contact_name',
@@ -97,6 +98,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
     }
 
     public function manager(): BelongsTo

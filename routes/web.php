@@ -117,8 +117,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('permission:documents.export')
         ->name('records.export.candidate');
 
-    Route::middleware('role:admin')
-        ->prefix('admin')
+    Route::prefix('admin')
         ->name('admin.')
         ->group(function () {
 
