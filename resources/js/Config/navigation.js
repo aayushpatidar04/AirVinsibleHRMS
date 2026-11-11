@@ -138,6 +138,27 @@ export const masterNavigation = [
         group: "admin",
     },
     {
+        name: "Attendance Policies",
+        route: "admin.attendance-policies.index",
+        permission: "attendance-policies.view",
+        icon: icons.attendance,
+        group: "admin",
+    },
+    {
+        name: "Leave Policies",
+        route: "admin.leave-policies.index",
+        permission: "leave-policies.view",
+        icon: icons.leave,
+        group: "admin",
+    },
+    {
+        name: "Shifts",
+        route: "admin.shifts.index",
+        permission: "shifts.view",
+        icon: icons.calendar,
+        group: "admin",
+    },
+    {
         name: "Export Records",
         route: "records.export.index",
         permission: "documents.export",

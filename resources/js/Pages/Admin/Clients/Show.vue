@@ -13,6 +13,24 @@ const props = defineProps({ client: Object })
                 <div class="flex gap-2">
                     <Link :href="route('admin.clients.edit', client.id)" class="btn-secondary">Edit</Link>
                     <Link :href="route('admin.clients.index')" class="btn-secondary">Back</Link>
+                    <Link
+                        :href="route('admin.attendance-policies.create') + '?client_id=' + client.id"
+                        class="btn-secondary text-sm bg-indigo-600 hover:bg-indigo-700 text-white"
+                    >
+                        + Add Attendance Policy
+                    </Link>
+                    <Link
+                        :href="route('admin.leave-policies.create') + '?client_id=' + client.id"
+                        class="btn-secondary text-sm bg-violet-600 hover:bg-violet-700 text-white"
+                    >
+                        + Add Leave Policy
+                    </Link>
+                    <Link
+                        :href="route('admin.shifts.create') + '?client_id=' + client.id"
+                        class="btn-secondary text-sm bg-teal-600 hover:bg-teal-700 text-white"
+                    >
+                        + Add Shift
+                    </Link>
                 </div>
             </div>
 

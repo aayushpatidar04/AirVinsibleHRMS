@@ -6,6 +6,9 @@ use Inertia\Inertia;
 // Controllers
 use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
 use App\Http\Controllers\Admin\BranchController;
+use App\Http\Controllers\Admin\AttendancePolicyController;
+use App\Http\Controllers\Admin\LeavePolicyController;
+use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\InterviewerController;
 use App\Http\Controllers\Admin\InterviewRoundController;
@@ -126,6 +129,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             // Branches
             Route::resource('branches', BranchController::class);
+
+            // Attendance Policies
+            Route::resource('attendance-policies', AttendancePolicyController::class);
+
+            // Leave Policies
+            Route::resource('leave-policies', LeavePolicyController::class);
+
+            // Shifts
+            Route::resource('shifts', ShiftController::class);
 
             // Interviewers
             Route::resource('interviewers', InterviewerController::class);
