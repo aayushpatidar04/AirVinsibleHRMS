@@ -7,8 +7,10 @@ use Inertia\Inertia;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
 use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\Admin\AttendancePolicyController;
+use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Controllers\Admin\LeavePolicyController;
 use App\Http\Controllers\Admin\ShiftController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\InterviewerController;
 use App\Http\Controllers\Admin\InterviewRoundController;
@@ -138,6 +140,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             // Shifts
             Route::resource('shifts', ShiftController::class);
+
+            // Integrations
+            Route::resource('integrations', IntegrationController::class);
+
+            // Reports
+            Route::get('/reports', [ReportController::class, 'index'])
+                ->middleware('permission:reports.view')
+                ->name('reports.index');
 
             // Interviewers
             Route::resource('interviewers', InterviewerController::class);

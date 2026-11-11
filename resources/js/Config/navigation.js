@@ -159,6 +159,20 @@ export const masterNavigation = [
         group: "admin",
     },
     {
+        name: "Integrations",
+        route: "admin.integrations.index",
+        permission: "integrations.view",
+        icon: icons.qr,
+        group: "admin",
+    },
+    {
+        name: "Reports",
+        route: "admin.reports.index",
+        permission: "reports.view",
+        icon: icons.export,
+        group: "admin",
+    },
+    {
         name: "Export Records",
         route: "records.export.index",
         permission: "documents.export",
