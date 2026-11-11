@@ -4,7 +4,7 @@ import { useForm, Link } from '@inertiajs/vue3'
 
 const props = defineProps({
     employee: Object, branches: Array, roles: Array,
-    managers: Array, employmentTypes: Object,
+    managers: Array, clients: Array, shifts: Array, employmentTypes: Object,
 })
 
 const form = useForm({
@@ -16,6 +16,7 @@ const form = useForm({
     designation: props.employee.designation ?? '',
     department: props.employee.department ?? '',
     branch_id: props.employee.branch_id ?? '',
+    client_id: props.employee.client_id ?? '',
     reporting_to: props.employee.reporting_to ?? '',
     date_of_joining: props.employee.date_of_joining ?? '',
     date_of_birth: props.employee.date_of_birth ?? '',
@@ -30,6 +31,34 @@ const form = useForm({
 })
 
 const submit = () => form.put(route('admin.employees.update', props.employee.id))
+
+// Shift assignment
+const shiftForm = {
+    shift_id: '',
+    effective_from: '',
+    effective_to: '',
+    processing: false,
+}
+
+const submitShift = async () => {
+    shiftForm.processing = true
+    try {
+        await router.post(route('admin.employees.assign-shift', props.employee.id), {
+            shift_id: shiftForm.shift_id,
+            effective_from: shiftForm.effective_from,
+            effective_to: shiftForm.effective_to || null,
+        })
+        shiftForm.shift_id = ''
+        shiftForm.effective_from = ''
+        shiftForm.effective_to = ''
+        // Refresh page to show updated shift
+        window.location.reload()
+    } catch (e) {
+        // Errors handled by Inertia
+    } finally {
+        shiftForm.processing = false
+    }
+}
 
 const toggleRole = (r) => {
     const idx = form.roles.indexOf(r)
@@ -130,18 +159,27 @@ const toggleRole = (r) => {
                             </select>
                         </div>
                         <div>
+                            <label class="label">Client</label>
+                            <select v-model="form.client_id" class="input-field">
+                                <option value="">No Client</option>
+                                <option v-for="c in props.clients" :key="c.id" :value="c.id">{{ c.name }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
                             <label class="label">Reports To</label>
                             <select v-model="form.reporting_to" class="input-field">
                                 <option value="">None</option>
                                 <option v-for="m in managers" :key="m.id" :value="m.id">{{ m.name }}</option>
                             </select>
                         </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="label">Date of Joining</label>
                             <input v-model="form.date_of_joining" type="date" class="input-field" />
                         </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="label">Employment Status <span class="text-red-500">*</span></label>
                             <select v-model="form.employment_status" class="input-field">
@@ -171,6 +209,39 @@ const toggleRole = (r) => {
                         <span class="text-sm text-gray-700">Allow conducting interviews</span>
                     </label>
                     <p v-if="form.errors.roles" class="error">{{ form.errors.roles }}</p>
+                </div>
+
+                <!-- Shift Assignment -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+                    <h2 class="font-semibold text-gray-800">Shift Assignment</h2>
+                    <p class="text-sm text-gray-500">Assign a shift to this employee. Only one shift can be active at a time.</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="label">Shift <span class="text-red-500">*</span></label>
+                            <select v-model="shiftForm.shift_id" class="input-field">
+                                <option value="">Select shift</option>
+                                <option v-for="s in props.shifts" :key="s.id" :value="s.id">{{ s.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="label">Effective From <span class="text-red-500">*</span></label>
+                            <input v-model="shiftForm.effective_from" type="date" class="input-field" />
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="label">Effective To</label>
+                            <input v-model="shiftForm.effective_to" type="date" class="input-field" />
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        @click="submitShift"
+                        :disabled="shiftForm.processing || !shiftForm.shift_id || !shiftForm.effective_from"
+                        class="w-full bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 disabled:opacity-50 text-sm font-medium transition"
+                    >
+                        {{ shiftForm.processing ? 'Assigning...' : 'Assign Shift' }}
+                    </button>
                 </div>
 
                 <!-- Emergency Contact -->

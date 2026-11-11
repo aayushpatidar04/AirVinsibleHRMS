@@ -160,6 +160,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/employees/{employee}/toggle-interviewer', [EmployeeController::class, 'toggleInterviewer'])->name('employees.toggle-interviewer');
             Route::post('/employees/{employee}/assign-role', [EmployeeController::class, 'assignRole'])->name('employees.assign-role');
             Route::post('/employees/{employee}/remove-role', [EmployeeController::class, 'removeRole'])->name('employees.remove-role');
+            Route::post('/employees/{employee}/assign-shift', [EmployeeController::class, 'assignShift'])->name('employees.assign-shift');
             Route::post('/employees/{employee}/reset-password', [EmployeeController::class, 'resetPassword'])->name('employees.reset-password');
             Route::post('/employees/{employee}/restore', [EmployeeController::class, 'restore'])->name('employees.restore');
             Route::post('/employees/{employee}/interview-rounds', [EmployeeController::class, 'syncInterviewRounds'])->name('employees.sync-interview-rounds');

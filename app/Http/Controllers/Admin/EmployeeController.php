@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Imports\EmployeesImport;
 use App\Models\Branch;
+use App\Models\Client;
+use App\Models\EmployeeShift;
 use App\Models\InterviewRound;
+use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -198,6 +201,8 @@ class EmployeeController extends Controller
             ]),
             'branches' => Branch::active()->get(['id', 'name']),
             'roles' => Role::all(['name'])->pluck('name'),
+            'clients' => Client::active()->get(['id', 'name']),
+            'shifts' => Shift::active()->get(['id', 'name']),
             'managers' => User::active()->where('id', '!=', $employee->id)
                 ->get()->map(fn($u) => ['id' => $u->id, 'name' => $u->full_name, 'designation' => $u->designation]),
             'employmentTypes' => ['full_time' => 'Full Time', 'part_time' => 'Part Time', 'contract' => 'Contract', 'intern' => 'Intern'],
@@ -216,6 +221,7 @@ class EmployeeController extends Controller
             'designation' => 'nullable|string|max:255',
             'department' => 'nullable|string|max:100',
             'branch_id' => 'nullable|exists:branches,id',
+            'client_id' => 'nullable|exists:clients,id',
             'reporting_to' => 'nullable|exists:users,id',
             'date_of_joining' => 'nullable|date',
             'date_of_birth' => 'nullable|date',
@@ -296,6 +302,33 @@ class EmployeeController extends Controller
         }
 
         return back()->with('success', "Role '{$data['role']}' removed.");
+    }
+
+    /** Assign shift to employee */
+    public function assignShift(Request $request, User $employee)
+    {
+        $data = $request->validate([
+            'shift_id' => 'required|exists:shifts,id',
+            'effective_from' => 'required|date',
+            'effective_to' => 'nullable|date|after:effective_from',
+        ]);
+
+        // Deactivate current active shift
+        EmployeeShift::where('user_id', $employee->id)
+            ->where('is_active', true)
+            ->update(['is_active' => false, 'effective_to' => $data['effective_from']]);
+
+        // Create new shift assignment
+        EmployeeShift::create([
+            'user_id' => $employee->id,
+            'shift_id' => $data['shift_id'],
+            'client_id' => $employee->client_id,
+            'effective_from' => $data['effective_from'],
+            'effective_to' => $data['effective_to'],
+            'is_active' => true,
+        ]);
+
+        return back()->with('success', 'Shift assigned to employee successfully.');
     }
 
     /** Reset password */
