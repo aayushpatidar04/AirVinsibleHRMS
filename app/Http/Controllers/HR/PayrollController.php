@@ -32,7 +32,7 @@ class PayrollController extends Controller
 
         $clients = Client::active()->orderBy('name')->get();
 
-        return Inertia::render('HR/Payroll/Index', [
+        return Inertia::render('Hr/Payroll/Index', [
             'runs' => $runs,
             'clients' => $clients,
             'statuses' => [
@@ -62,7 +62,7 @@ class PayrollController extends Controller
 
         $clients = Client::active()->orderBy('name')->get();
 
-        return Inertia::render('HR/Payroll/Periods', [
+        return Inertia::render('Hr/Payroll/Periods', [
             'periods' => $periods,
             'clients' => $clients,
             'filters' => $request->only(['client_id']),
@@ -104,7 +104,7 @@ class PayrollController extends Controller
 
         $clients = Client::active()->orderBy('name')->get();
 
-        return Inertia::render('HR/Payroll/Components', [
+        return Inertia::render('Hr/Payroll/Components', [
             'components' => $components,
             'clients' => $clients,
             'filters' => $request->only(['client_id', 'type']),
@@ -137,7 +137,7 @@ class PayrollController extends Controller
 
         $calculations = $run->calculations()->orderBy('user_id')->paginate(15);
 
-        return Inertia::render('HR/Payroll/Calculations', [
+        return Inertia::render('Hr/Payroll/Calculations', [
             'run' => $run,
             'calculations' => $calculations,
         ]);
@@ -167,7 +167,7 @@ class PayrollController extends Controller
         $clients = Client::active()->orderBy('name')->get();
         $users = User::active()->orderBy('first_name')->get();
 
-        return Inertia::render('HR/Payroll/Payslips', [
+        return Inertia::render('Hr/Payroll/Payslips', [
             'payslips' => $payslips,
             'clients' => $clients,
             'users' => $users,

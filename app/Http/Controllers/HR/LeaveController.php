@@ -43,7 +43,7 @@ class LeaveController extends Controller
         $users = User::active()->orderBy('first_name')->get();
         $leaveTypes = LeaveType::active()->orderBy('name')->get();
 
-        return Inertia::render('HR/Leave/Index', [
+        return Inertia::render('Hr/Leave/Index', [
             'applications' => $applications,
             'clients' => $clients,
             'users' => $users,
@@ -63,7 +63,7 @@ class LeaveController extends Controller
         $types = $query->orderBy('name')->paginate(15)->withQueryString();
         $clients = Client::active()->orderBy('name')->get();
 
-        return Inertia::render('HR/Leave/Types', [
+        return Inertia::render('Hr/Leave/Types', [
             'types' => $types,
             'clients' => $clients,
             'filters' => $request->only(['client_id']),
@@ -121,7 +121,7 @@ class LeaveController extends Controller
         $clients = Client::active()->orderBy('name')->get();
         $users = User::active()->orderBy('first_name')->get();
 
-        return Inertia::render('HR/Leave/Balances', [
+        return Inertia::render('Hr/Leave/Balances', [
             'balances' => $balances,
             'clients' => $clients,
             'users' => $users,

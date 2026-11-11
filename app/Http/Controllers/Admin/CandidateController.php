@@ -281,6 +281,11 @@ class CandidateController extends Controller
                 'id' => $b->id,
                 'name' => $b->name,
             ]),
+            'managers' => User::active()->orderBy('first_name')->get()->map(fn($u) => [
+                'id' => $u->id,
+                'name' => $u->full_name,
+                'designation' => $u->designation,
+            ]),
             'candidate' => [
                 'id' => $candidate->id,
                 'name' => $candidate->full_name,
@@ -335,6 +340,24 @@ class CandidateController extends Controller
                             $candidate->latestOffer->status,
                         'status_label' =>
                             $candidate->latestOffer->status_label,
+                        'designation' =>
+                            $candidate->latestOffer->designation,
+                        'department' =>
+                            $candidate->latestOffer->department,
+                        'branch_id' =>
+                            $candidate->latestOffer->branch_id,
+                        'branch_name' =>
+                            $candidate->latestOffer->branch?->name,
+                        'reporting_manager_id' =>
+                            $candidate->latestOffer->reporting_manager_id,
+                        'salary_ctc' =>
+                            $candidate->latestOffer->salary_ctc,
+                        'salary_in_hand' =>
+                            $candidate->latestOffer->salary_in_hand,
+                        'joining_date' =>
+                            $candidate->latestOffer->joining_date
+                                ? $candidate->latestOffer->joining_date->format('Y-m-d')
+                                : null,
                     ]
                     : null,
                 'intent_letter' => $candidate->latestIntentLetter

@@ -40,7 +40,7 @@ class AttendanceController extends Controller
         $clients = Client::active()->orderBy('name')->get();
         $users = User::active()->orderBy('first_name')->get();
 
-        return Inertia::render('HR/Attendance/Index', [
+        return Inertia::render('Hr/Attendance/Index', [
             'attendanceRecords' => $attendanceRecords,
             'clients' => $clients,
             'users' => $users,
@@ -52,7 +52,7 @@ class AttendanceController extends Controller
     {
         $attendanceRecord->load(['user', 'client', 'shift', 'punches']);
 
-        return Inertia::render('HR/Attendance/Show', [
+        return Inertia::render('Hr/Attendance/Show', [
             'attendanceRecord' => $attendanceRecord,
         ]);
     }
@@ -110,7 +110,7 @@ class AttendanceController extends Controller
 
         $clients = Client::active()->orderBy('name')->get();
 
-        return Inertia::render('HR/Attendance/Corrections', [
+        return Inertia::render('Hr/Attendance/Corrections', [
             'corrections' => $corrections,
             'clients' => $clients,
             'filters' => $request->only(['status', 'client_id']),

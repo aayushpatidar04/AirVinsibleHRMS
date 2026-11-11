@@ -43,6 +43,11 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+
+    managers: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const showStatusModal = ref(false);
@@ -60,6 +65,22 @@ const showReassignModal = ref(false);
 const showRegPanel = ref(false);
 const showConvertModal = ref(false);
 const selectedRound = ref(null);
+const managerSearch = ref("");
+
+const filteredManagers = computed(() => {
+    if (!managerSearch.value) return [];
+    const search = managerSearch.value.toLowerCase();
+    return props.managers.filter(
+        (m) =>
+            m.name.toLowerCase().includes(search) ||
+            (m.designation && m.designation.toLowerCase().includes(search))
+    );
+});
+
+const selectManager = (manager) => {
+    convertForm.reporting_to = manager.id;
+    managerSearch.value = manager.name;
+};
 
 const statusForm = useForm({
     final_status: props.candidate.final_status,
@@ -253,13 +274,13 @@ const submitReassign = () => {
 // Convert to Employee
 const convertForm = useForm({
     employee_id: "",
-    date_of_joining: "",
-    designation: "",
-    department: "",
-    branch_id: "",
-    reporting_to: "",
-    employment_type: "full_time",
-    phone: "",
+    date_of_joining: props.candidate.active_offer?.joining_date || "",
+    designation: props.candidate.active_offer?.designation || "",
+    department: props.candidate.active_offer?.department || "",
+    branch_id: props.candidate.active_offer?.branch_id || "",
+    reporting_to: props.candidate.active_offer?.reporting_manager_id || "",
+    employment_type: props.candidate.active_offer?.employment_type || "",
+    phone: props.candidate.phone || "",
     date_of_birth: "",
     address: "",
 });
@@ -2281,19 +2302,38 @@ const minDateTime = computed(() => {
                     </div>
                     <div>
                         <label class="label">Reporting To</label>
-                        <select
-                            v-model="convertForm.reporting_to"
-                            class="input-field"
-                        >
-                            <option value="">None</option>
-                            <!-- Manager options would be loaded from props or API -->
-                        </select>
-                        <p
-                            v-if="convertForm.errors.reporting_to"
-                            class="error"
-                        >
-                            {{ convertForm.errors.reporting_to }}
-                        </p>
+                        <div class="relative">
+                            <input
+                                v-model="managerSearch"
+                                type="text"
+                                class="input-field"
+                                placeholder="Search manager..."
+                            />
+                            <div
+                                v-if="managerSearch && filteredManagers.length"
+                                class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                            >
+                                <div
+                                    v-for="m in filteredManagers"
+                                    :key="m.id"
+                                    @click="selectManager(m)"
+                                    class="px-3 py-2 cursor-pointer hover:bg-gray-100 text-sm border-b border-gray-50 last:border-b-0"
+                                >
+                                    {{ m.name }}
+                                    <span v-if="m.designation" class="text-gray-500 text-xs"> - {{ m.designation }}</span>
+                                </div>
+                                <div v-if="!filteredManagers.length" class="px-3 py-2 text-sm text-gray-500">
+                                    No managers found
+                                </div>
+                            </div>
+                            <input
+                                v-model="convertForm.reporting_to"
+                                type="hidden"
+                            />
+                            <p v-if="convertForm.errors.reporting_to" class="error">
+                                {{ convertForm.errors.reporting_to }}
+                            </p>
+                        </div>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
