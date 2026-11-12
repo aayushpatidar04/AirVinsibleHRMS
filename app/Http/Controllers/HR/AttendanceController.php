@@ -60,24 +60,26 @@ class AttendanceController extends Controller
     public function punch(Request $request)
     {
         $data = $request->validate([
-            'user_id' => 'required|exists:users,id',
+            'user_id' => 'nullable|exists:users,id',
             'punch_type' => 'required|in:in,out,break_start,break_end',
-            'source' => 'required|in:portal,machine,manual,desktop_agent',
+            'source' => 'nullable|in:portal,machine,manual,desktop_agent',
             'device_id' => 'nullable|string|max:100',
             'geolocation' => 'nullable|array',
             'ip_address' => 'nullable|string|max:45',
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        $user = User::findOrFail($data['user_id']);
-        $clientId = $user->branch_id; // Using branch_id as client reference for now
+        // Default to authenticated user if user_id not provided
+        $userId = $data['user_id'] ?? auth()->id();
+        $user = User::findOrFail($userId);
+        $clientId = $user->client_id ?? $user->branch_id;
 
         $punch = AttendancePunch::create([
-            'user_id' => $data['user_id'],
+            'user_id' => $userId,
             'client_id' => $clientId,
             'punch_time' => now(),
             'punch_type' => $data['punch_type'],
-            'source' => $data['source'],
+            'source' => $data['source'] ?? 'portal',
             'device_id' => $data['device_id'] ?? null,
             'geolocation' => $data['geolocation'] ?? null,
             'ip_address' => $data['ip_address'] ?? null,

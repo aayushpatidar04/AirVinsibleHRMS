@@ -81,6 +81,13 @@ export const masterNavigation = [
         group: "employee",
     },
     {
+        name: "Punch In/Out",
+        route: "employee.punch",
+        permission: "attendance.record",
+        icon: icons.attendance,
+        group: "employee",
+    },
+    {
         name: "Branches",
         route: "admin.branches.index",
         permission: "branches.view",
@@ -219,6 +226,20 @@ export const masterNavigation = [
         route: "hr.payroll.index",
         permission: "payroll.view",
         icon: icons.payroll,
+        group: "hr",
+    },
+    {
+        name: "Leave Types",
+        route: "hr.leave.types",
+        permission: "leave.manage",
+        icon: icons.leave,
+        group: "hr",
+    },
+    {
+        name: "Leave Balances",
+        route: "hr.leave.balances",
+        permission: "leave.view",
+        icon: icons.leave,
         group: "hr",
     },
 ];

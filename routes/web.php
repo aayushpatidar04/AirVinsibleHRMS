@@ -12,6 +12,8 @@ use App\Http\Controllers\Admin\LeavePolicyController;
 use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Employee\DashboardController as EmployeeDashboard;
+use App\Http\Controllers\Employee\PunchController as EmployeePunch;
 use App\Http\Controllers\Admin\InterviewerController;
 use App\Http\Controllers\Admin\InterviewRoundController;
 use App\Http\Controllers\Admin\FormController;
@@ -649,6 +651,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/payroll/payslips', [PayrollController::class, 'payslips'])->name('payroll.payslips')->middleware('permission:payroll.view');
             Route::post('/payroll/payslips/{payslip}/publish', [PayrollController::class, 'publishPayslip'])->name('payroll.payslips.publish')->middleware('permission:payroll.manage');
                 });
+
+    /*
+    |----------------------------------------------------------------------
+    | Employee Panel
+    |----------------------------------------------------------------------
+    */
+    Route::prefix('employee')
+        ->name('employee.')
+        ->middleware('auth')
+        ->group(function () {
+            Route::get('/dashboard', [EmployeeDashboard::class, 'index'])->name('dashboard');
+            Route::get('/punch', [EmployeePunch::class, 'index'])->name('punch');
+            Route::post('/punch', [EmployeePunch::class, 'store'])->name('punch.store');
+        });
 
     /*
     |----------------------------------------------------------------------
