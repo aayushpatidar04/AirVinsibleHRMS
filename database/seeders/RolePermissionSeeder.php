@@ -297,6 +297,7 @@ class RolePermissionSeeder extends Seeder
              | Attendance
              |--------------------------------------------------------------------------
              */
+            'attendance.record',
             'attendance.view-own',
             'attendance.view-branch',
             'attendance.view-all-branches',
@@ -511,6 +512,7 @@ class RolePermissionSeeder extends Seeder
             'employee-letters.download',
 
             'attendance.view-branch',
+            'attendance.record',
             'attendance.mark',
             'attendance.update',
             'attendance.approve-regularization',
@@ -580,6 +582,7 @@ class RolePermissionSeeder extends Seeder
             'dashboard.employee.view',
 
             'attendance.view-own',
+            'attendance.record',
             'attendance.regularize',
 
             'holidays.view',

@@ -14,9 +14,6 @@ const props = defineProps({
     flash: Object,
 })
 
-const punchType = ref('')
-const punchSource = ref('portal')
-const punchNotes = ref('')
 const processing = ref(false)
 
 const punchTypes = [
@@ -26,20 +23,23 @@ const punchTypes = [
     { value: 'break_end', label: 'End Break', disabled: !props.canBreakEnd, base: 'bg-indigo-600 text-white border-indigo-600' },
 ]
 
-const selectPunch = (type) => {
-    punchType.value = type.value
-    submitPunch();
-}
-
-const submitPunch = () => {
-    if (!punchType.value) return
+const recordPunch = (type) => {
+    if (type.disabled || processing.value) return
 
     processing.value = true
 
     router.post(route('employee.punch.store'), {
-        punch_type: punchType.value,
-        source: punchSource.value,
-        notes: punchNotes.value || null,
+        punch_type: type.value,
+        source: 'portal',
+        notes: null,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            processing.value = false
+        },
+        onError: () => {
+            processing.value = false
+        },
     })
 }
 
@@ -67,6 +67,11 @@ const statusColor = {
                 <h1 class="text-2xl font-bold text-gray-900">Punch In / Out</h1>
             </div>
 
+            <!-- Flash Message -->
+            <div v-if="props.flash.success" class="bg-green-50 border border-green-200 rounded-lg p-4 text-green-800 text-sm">
+                {{ props.flash.success }}
+            </div>
+
             <!-- Current Status -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-center justify-between mb-4">
@@ -85,80 +90,15 @@ const statusColor = {
                         v-for="pt in punchTypes"
                         :key="pt.value"
                         type="button"
-                        @click="selectPunch(pt)"
+                        @click="recordPunch(pt)"
                         :disabled="pt.disabled || processing"
                         :class="
                             'w-full py-4 rounded-lg font-medium border-2 transition-all duration-200 flex flex-col items-center justify-center gap-2 ' +
-                            (punchType.value === pt.value
-                                ? pt.base + ' border-4'
-                                : pt.base + ' hover:bg-green-700 text-gray-600 border-gray-300')
+                            (processing ? 'opacity-60 cursor-not-allowed' : pt.base + ' hover:bg-gray-100 text-gray-600 border-gray-300')
                         "
                     >
                         <span class="text-lg font-bold">{{ pt.label }}</span>
                         <span v-if="pt.disabled" class="text-xs opacity-50">Not available</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Punch Form -->
-            <div v-if="punchType.value" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-base font-semibold text-gray-800">Confirm Punch</h2>
-                    <button
-                        type="button"
-                        @click="punchType.value = ''; punchResult.value = null"
-                        class="text-sm text-gray-500 hover:text-gray-700 underline"
-                    >
-                        Cancel
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="label">Punch Type <span class="text-red-500">*</span></label>
-                        <input
-                            v-model="punchType.value"
-                            type="text"
-                            class="input-field"
-                            readonly
-                        />
-                    </div>
-                    <div>
-                        <label class="label">Source</label>
-                        <select v-model="punchSource" class="input-field">
-                            <option value="portal">Web Portal</option>
-                            <option value="machine">Biometric Machine</option>
-                            <option value="manual">Manual Entry</option>
-                            <option value="desktop_agent">Desktop Agent</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="label">Notes</label>
-                    <textarea
-                        v-model="punchNotes"
-                        rows="3"
-                        class="input-field"
-                        placeholder="Any notes about this punch..."
-                    />
-                </div>
-
-                <div class="flex items-center justify-end gap-3 pt-4 border-t">
-                    <button
-                        type="button"
-                        @click="punchType.value = ''; punchResult.value = null"
-                        class="btn-secondary"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="button"
-                        @click="submitPunch"
-                        :disabled="processing"
-                        class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium transition"
-                    >
-                        {{ processing ? 'Recording...' : 'Confirm Punch' }}
                     </button>
                 </div>
             </div>
