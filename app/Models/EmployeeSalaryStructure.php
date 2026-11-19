@@ -2,33 +2,22 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class EmployeeSalaryStructure extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
-    protected $fillable = [
-        'user_id',
-        'client_id',
-        'basic_salary',
-        'earnings',
-        'deductions',
-        'effective_from',
-        'effective_to',
-        'is_active',
-    ];
+    protected $guarded = ['id'];
 
     protected $casts = [
-        'basic_salary' => 'decimal:2',
-        'earnings' => 'array',
-        'deductions' => 'array',
         'effective_from' => 'date',
         'effective_to' => 'date',
-        'is_active' => 'boolean',
+        'hourly_rate' => 'float',
     ];
 
     public function user(): BelongsTo
@@ -41,8 +30,26 @@ class EmployeeSalaryStructure extends Model
         return $this->belongsTo(Client::class);
     }
 
-    public function scopeActive($query)
+    public function sourceOffer(): BelongsTo
     {
-        return $query->where('is_active', true);
+        return $this->belongsTo(CandidateOffer::class, 'source_offer_id');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(SalaryStructureItem::class, 'structure_id')->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function scopeEffectiveOn($query, CarbonInterface|string $date)
+    {
+        $date = is_string($date) ? $date : $date->toDateString();
+
+        return $query->whereDate('effective_from', '<=', $date)
+            ->where(fn ($q) => $q->whereNull('effective_to')->orWhereDate('effective_to', '>=', $date));
+    }
+
+    public function monthlyGross(): float
+    {
+        return (float) $this->items->where('type', 'earning')->sum('amount');
     }
 }

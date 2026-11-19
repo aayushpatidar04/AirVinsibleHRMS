@@ -42,7 +42,7 @@ class Client extends Model
 
     public function attendancePolicies(): HasMany
     {
-        return $this->hasMany(AttendancePolicy::class)->whereNull('deleted_at');
+        return $this->hasMany(AttendancePolicy::class);
     }
 
     public function shifts(): HasMany
@@ -52,32 +52,32 @@ class Client extends Model
 
     public function attendanceRecords(): HasMany
     {
-        return $this->hasMany(AttendanceRecord::class)->whereNull('deleted_at');
+        return $this->hasMany(AttendanceRecord::class);
     }
 
     public function leaveTypes(): HasMany
     {
-        return $this->hasMany(LeaveType::class)->whereNull('deleted_at');
+        return $this->hasMany(LeaveType::class);
     }
 
     public function leavePolicies(): HasMany
     {
-        return $this->hasMany(LeavePolicy::class)->whereNull('deleted_at');
+        return $this->hasMany(LeavePolicy::class);
+    }
+
+    public function officeLocations(): HasMany
+    {
+        return $this->hasMany(OfficeLocation::class);
     }
 
     public function payrollPeriods(): HasMany
     {
-        return $this->hasMany(PayrollPeriod::class)->whereNull('deleted_at');
+        return $this->hasMany(PayrollPeriod::class);
     }
 
     public function payrollRuns(): HasMany
     {
-        return $this->hasMany(PayrollRun::class)->whereNull('deleted_at');
-    }
-
-    public function payrollComponents(): HasMany
-    {
-        return $this->hasMany(PayrollComponent::class)->whereNull('deleted_at');
+        return $this->hasMany(PayrollRun::class);
     }
 
     public function scopeActive($query)

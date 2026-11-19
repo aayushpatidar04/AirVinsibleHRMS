@@ -2,34 +2,36 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Raw punch events. Rows are never edited or deleted; a wrong punch is
+ * voided (with a reason) and, if needed, superseded by a manual punch that
+ * points at the approved correction.
+ */
 class AttendancePunch extends Model
 {
-    use HasFactory, SoftDeletes;
+    public const TYPE_IN = 'in';
+    public const TYPE_OUT = 'out';
+    public const TYPE_BREAK_START = 'break_start';
+    public const TYPE_BREAK_END = 'break_end';
 
-    protected $fillable = [
-        'user_id',
-        'attendance_record_id',
-        'client_id',
-        'punch_time',
-        'punch_type',
-        'source',
-        'device_id',
-        'geolocation',
-        'ip_address',
-        'notes',
-        'is_manual_correction',
-        'corrected_by',
-    ];
+    public const SOURCE_PORTAL = 'portal';
+    public const SOURCE_MACHINE = 'machine';
+    public const SOURCE_AGENT = 'agent';
+    public const SOURCE_MANUAL = 'manual';
+
+    protected $guarded = ['id'];
 
     protected $casts = [
-        'punch_time' => 'datetime',
-        'geolocation' => 'array',
-        'is_manual_correction' => 'boolean',
+        'attendance_date' => 'date',
+        'punched_at' => 'datetime',
+        'voided_at' => 'datetime',
+        'latitude' => 'float',
+        'longitude' => 'float',
+        'accuracy_meters' => 'float',
+        'distance_meters' => 'float',
     ];
 
     public function user(): BelongsTo
@@ -37,23 +39,13 @@ class AttendancePunch extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function attendanceRecord(): BelongsTo
+    public function creator(): BelongsTo
     {
-        return $this->belongsTo(AttendanceRecord::class);
+        return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function client(): BelongsTo
+    public function scopeValid($query)
     {
-        return $this->belongsTo(Client::class);
+        return $query->whereNull('voided_at');
     }
-
-    public function correctedBy(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'corrected_by');
-    }
-
-    public const PUNCH_IN = 'in';
-    public const PUNCH_OUT = 'out';
-    public const BREAK_START = 'break_start';
-    public const BREAK_END = 'break_end';
 }

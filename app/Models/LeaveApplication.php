@@ -2,48 +2,27 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LeaveApplication extends Model
 {
-    use HasFactory, SoftDeletes;
+    public const PENDING = 'pending';
+    public const APPROVED = 'approved';
+    public const REJECTED = 'rejected';
+    public const CANCELLED = 'cancelled';
 
-    protected $fillable = [
-        'user_id',
-        'client_id',
-        'leave_type_id',
-        'start_date',
-        'end_date',
-        'total_days',
-        'is_half_day',
-        'half_day_session',
-        'reason',
-        'status',
-        'approved_by',
-        'approved_at',
-        'rejection_reason',
-        'admin_notes',
-        'applied_on',
-    ];
+    protected $guarded = ['id'];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
-        'total_days' => 'decimal:2',
         'is_half_day' => 'boolean',
-        'half_day_session' => 'string',
-        'status' => 'string',
-        'approved_at' => 'datetime',
-        'applied_on' => 'date',
+        'total_days' => 'float',
+        'decided_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
-
-    public const STATUS_PENDING = 'pending';
-    public const STATUS_APPROVED = 'approved';
-    public const STATUS_REJECTED = 'rejected';
-    public const STATUS_CANCELLED = 'cancelled';
 
     public function user(): BelongsTo
     {
@@ -60,23 +39,23 @@ class LeaveApplication extends Model
         return $this->belongsTo(LeaveType::class);
     }
 
-    public function approvedBy(): BelongsTo
+    public function policy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'approved_by');
+        return $this->belongsTo(LeavePolicy::class, 'policy_id');
     }
 
-    public function scopePending($query)
+    public function approvals(): HasMany
     {
-        return $query->where('status', self::STATUS_PENDING);
+        return $this->hasMany(LeaveApproval::class)->orderBy('level');
     }
 
-    public function scopeApproved($query)
+    public function isPending(): bool
     {
-        return $query->where('status', self::STATUS_APPROVED);
+        return $this->status === self::PENDING;
     }
 
-    public function scopeRejected($query)
+    public function scopeOverlapping($query, string $start, string $end)
     {
-        return $query->where('status', self::STATUS_REJECTED);
+        return $query->whereDate('start_date', '<=', $end)->whereDate('end_date', '>=', $start);
     }
 }

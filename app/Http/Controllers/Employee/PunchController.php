@@ -4,122 +4,113 @@ namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Models\AttendancePunch;
+use App\Models\AttendanceRecord;
+use App\Models\OfficeLocation;
+use App\Services\Workforce\PolicyResolver;
+use App\Services\Workforce\PunchRejectedException;
+use App\Services\Workforce\PunchService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class PunchController extends Controller
 {
-    public function index(Request $request)
+    public function __construct(
+        private readonly PunchService $punches,
+        private readonly PolicyResolver $resolver,
+    ) {
+    }
+
+    public function index(Request $request): Response
     {
         $user = $request->user();
+        $now = now();
 
-        // Get today's punches
-        $todayPunches = AttendancePunch::where('user_id', $user->id)
-            ->whereDate('punch_time', today())
-            ->orderBy('punch_time', 'asc')
-            ->get();
+        $state = $this->punches->currentState($user, $now);
+        $date = $state['date'] ?? $now->copy()->startOfDay();
 
-        // Determine current status from last punch
-        $lastPunch = $todayPunches->last();
-        $currentStatus = $lastPunch?->punch_type ?? null;
+        $punches = AttendancePunch::query()
+            ->where('user_id', $user->id)
+            ->whereDate('attendance_date', $date->toDateString())
+            ->valid()
+            ->orderBy('punched_at')
+            ->get()
+            ->map(fn (AttendancePunch $p) => [
+                'id' => $p->id,
+                'type' => $p->type,
+                'source' => $p->source,
+                'time' => $p->punched_at->format('h:i A'),
+                'geo_status' => $p->geo_status,
+            ]);
 
-        // Valid state transitions:
-        //   null       -> in            (first punch of day)
-        //   in         -> break_start   (start break)
-        //   break_start -> break_end    (end break)
-        //   break_end   -> break_start  (another break)
-        //   break_end   -> out          (end of day)
-        //   out         -> in           (next day)
-        $canPunchIn = is_null($currentStatus)
-            || in_array($currentStatus, ['out', 'break_end']);
-        $canPunchOut = in_array($currentStatus, ['in', 'break_end']);
-        $canBreakStart = $currentStatus === 'in';
-        $canBreakEnd = $currentStatus === 'break_start';
+        $record = AttendanceRecord::query()
+            ->where('user_id', $user->id)
+            ->whereDate('attendance_date', $date->toDateString())
+            ->first();
+
+        $shift = $this->resolver->shift($user, $date);
+        $policy = $this->resolver->attendancePolicy($user, $date);
 
         return Inertia::render('Employee/Punch', [
-            'user' => $user,
-            'todayPunches' => $todayPunches,
-            'currentStatus' => $currentStatus,
-            'canPunchIn' => $canPunchIn,
-            'canPunchOut' => $canPunchOut,
-            'canBreakStart' => $canBreakStart,
-            'canBreakEnd' => $canBreakEnd,
+            'serverTime' => $now->toIso8601String(),
+            'date' => $date->format('l, d F Y'),
+            'actions' => $this->actionsFor($state['last_type']),
+            'lastType' => $state['last_type'],
+            'punches' => $punches,
+            'record' => $record ? [
+                'status' => $record->status,
+                'first_in' => $record->first_in?->format('h:i A'),
+                'last_out' => $record->last_out?->format('h:i A'),
+                'worked_minutes' => $record->worked_minutes,
+                'break_minutes' => $record->break_minutes,
+                'is_late' => $record->is_late,
+                'late_minutes' => $record->late_minutes,
+            ] : null,
+            'shift' => $shift ? [
+                'name' => $shift->name,
+                'start' => $shift->start_time->format('h:i A'),
+                'end' => $shift->end_time->format('h:i A'),
+            ] : null,
+            'geofenceRequired' => (bool) $policy?->geofence_required,
+            'hasPolicy' => (bool) $policy,
+            'locations' => OfficeLocation::query()->availableTo($user)->get(['id', 'name', 'radius_meters'])
+                ->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'radius' => $l->radius_meters]),
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        $user = $request->user();
-
         $data = $request->validate([
-            'punch_type' => 'required|in:in,out,break_start,break_end',
-            'source' => 'nullable|in:portal,machine,manual,desktop_agent',
-            'device_id' => 'nullable|string|max:100',
-            'geolocation' => 'nullable|array',
-            'ip_address' => 'nullable|string|max:45',
-            'notes' => 'nullable|string|max:1000',
+            'type' => ['required', 'in:in,out,break_start,break_end'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'accuracy' => ['nullable', 'numeric', 'min:0', 'max:100000'],
         ]);
 
-        // Get today's last punch to validate state transition
-        $todayPunches = AttendancePunch::where('user_id', $user->id)
-            ->whereDate('punch_time', today())
-            ->orderBy('punch_time', 'asc')
-            ->get();
-
-        $lastPunch = $todayPunches->last();
-        $currentStatus = $lastPunch?->punch_type ?? null;
-
-        $punchType = $data['punch_type'];
-
-        // Validate state transitions
-        switch ($punchType) {
-            case 'in':
-                if (!is_null($currentStatus) && !in_array($currentStatus, ['out', 'break_end'])) {
-                    return back()->withErrors([
-                        'punch_type' => 'You cannot punch in again. You are already punched in or on break.',
-                    ])->withInput();
-                }
-                break;
-
-            case 'out':
-                if (!in_array($currentStatus, ['in', 'break_end'])) {
-                    return back()->withErrors([
-                        'punch_type' => 'You cannot punch out. You must punch in first, or end your break before punching out.',
-                    ])->withInput();
-                }
-                break;
-
-            case 'break_start':
-                if ($currentStatus !== 'in') {
-                    return back()->withErrors([
-                        'punch_type' => 'You cannot start a break. You must be punched in first.',
-                    ])->withInput();
-                }
-                break;
-
-            case 'break_end':
-                if ($currentStatus !== 'break_start') {
-                    return back()->withErrors([
-                        'punch_type' => 'You cannot end a break. You must be on break first.',
-                    ])->withInput();
-                }
-                break;
+        try {
+            $punch = $this->punches->punch($request->user(), $data['type'], [
+                'latitude' => isset($data['latitude']) ? (float) $data['latitude'] : null,
+                'longitude' => isset($data['longitude']) ? (float) $data['longitude'] : null,
+                'accuracy' => isset($data['accuracy']) ? (float) $data['accuracy'] : null,
+                'ip' => $request->ip(),
+            ]);
+        } catch (PunchRejectedException $e) {
+            return back()->withErrors(['punch' => $e->getMessage()]);
         }
 
-        AttendancePunch::create([
-            'user_id' => $user->id,
-            'client_id' => $user->client_id ?? $user->branch_id,
-            'punch_time' => now(),
-            'punch_type' => $punchType,
-            'source' => $data['source'] ?? 'portal',
-            'device_id' => $data['device_id'] ?? null,
-            'geolocation' => $data['geolocation'] ?? null,
-            'ip_address' => $data['ip_address'] ?? null,
-            'notes' => $data['notes'] ?? null,
-        ]);
+        $labels = ['in' => 'Punched in', 'out' => 'Punched out', 'break_start' => 'Break started', 'break_end' => 'Break ended'];
 
-        return redirect()
-            ->route('employee.punch')
-            ->with('success', 'Punch recorded successfully.');
+        return back()->with('success', $labels[$punch->type] . ' at ' . $punch->punched_at->format('h:i A') . '.');
+    }
+
+    /** What the employee can do next, given their last punch. */
+    private function actionsFor(?string $last): array
+    {
+        return match ($last) {
+            'in', 'break_end' => ['break_start', 'out'],
+            'break_start' => ['break_end'],
+            default => ['in'],
+        };
     }
 }

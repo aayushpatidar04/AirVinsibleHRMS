@@ -12,8 +12,6 @@ use App\Http\Controllers\Admin\LeavePolicyController;
 use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\EmployeeController;
-use App\Http\Controllers\Employee\DashboardController as EmployeeDashboard;
-use App\Http\Controllers\Employee\PunchController as EmployeePunch;
 use App\Http\Controllers\Admin\InterviewerController;
 use App\Http\Controllers\Admin\InterviewRoundController;
 use App\Http\Controllers\Admin\FormController;
@@ -34,9 +32,6 @@ use App\Http\Controllers\Recruitment\CandidateIntentLetterPortalController;
 use App\Http\Controllers\Recruitment\InterviewDashboardController;
 use App\Http\Controllers\RecordsExportController;
 use App\Http\Controllers\Admin\ClientController;
-use App\Http\Controllers\HR\AttendanceController;
-use App\Http\Controllers\HR\LeaveController;
-use App\Http\Controllers\HR\PayrollController;
 
 /*
 |--------------------------------------------------------------------------
@@ -134,17 +129,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
             // Branches
             Route::resource('branches', BranchController::class);
 
-            // Attendance Policies
-            Route::resource('attendance-policies', AttendancePolicyController::class);
+            // Attendance, leave and client setup. Each action needs its own permission.
+            $guarded = function (string $uri, string $controller, string $permission, array $except = []) {
+                return Route::resource($uri, $controller)->except($except)
+                    ->middlewareFor(['index', 'show'], "permission:{$permission}.view")
+                    ->middlewareFor(['create', 'store'], "permission:{$permission}.create")
+                    ->middlewareFor(['edit', 'update'], "permission:{$permission}.update")
+                    ->middlewareFor('destroy', "permission:{$permission}.delete");
+            };
 
-            // Leave Policies
-            Route::resource('leave-policies', LeavePolicyController::class);
+            $guarded('attendance-policies', AttendancePolicyController::class, 'attendance-policies', ['show']);
+            $guarded('leave-policies', LeavePolicyController::class, 'leave-policies', ['show']);
+            $guarded('shifts', ShiftController::class, 'shifts');
+            $guarded('leave-types', \App\Http\Controllers\Admin\LeaveTypeController::class, 'leave-types', ['show', 'create', 'edit']);
 
-            // Shifts
-            Route::resource('shifts', ShiftController::class);
-
-            // Integrations
-            Route::resource('integrations', IntegrationController::class);
+            Route::resource('integrations', IntegrationController::class)
+                ->middlewareFor(['index', 'show'], 'permission:integrations.view')
+                ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'permission:integrations.manage');
 
             // Reports
             Route::get('/reports', [ReportController::class, 'index'])
@@ -224,7 +225,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
             // Clients
-            Route::resource('clients', ClientController::class);
+            $guarded('clients', ClientController::class, 'clients');
             });
 
     /*
@@ -624,47 +625,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 '/dashboard',
                 [HrDashboard::class, 'index']
             )->name('dashboard');
-
-
-            // Attendance
-            Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index')->middleware('permission:attendance.view');
-            Route::get('/attendance/{attendance}', [AttendanceController::class, 'show'])->name('attendance.show')->middleware('permission:attendance.view');
-            Route::post('/attendance/punch', [AttendanceController::class, 'punch'])->name('attendance.punch')->middleware('permission:attendance.record');
-            Route::get('/attendance/corrections', [AttendanceController::class, 'corrections'])->name('attendance.corrections')->middleware('permission:attendance.manage');
-            Route::post('/attendance/corrections/{correction}/approve', [AttendanceController::class, 'approveCorrection'])->name('attendance.corrections.approve')->middleware('permission:attendance.manage');
-
-            // Leave
-            Route::get('/leave', [LeaveController::class, 'index'])->name('leave.index')->middleware('permission:leave.view');
-            Route::get('/leave/types', [LeaveController::class, 'types'])->name('leave.types')->middleware('permission:leave.manage');
-            Route::post('/leave/types', [LeaveController::class, 'storeType'])->name('leave.types.store')->middleware('permission:leave.manage');
-            Route::get('/leave/balances', [LeaveController::class, 'balances'])->name('leave.balances')->middleware('permission:leave.view');
-            Route::post('/leave/apply', [LeaveController::class, 'apply'])->name('leave.apply')->middleware('permission:leave.apply');
-            Route::post('/leave/{leave}/approve', [LeaveController::class, 'approve'])->name('leave.approve')->middleware('permission:leave.manage');
-
-            // Payroll
-            Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index')->middleware('permission:payroll.view');
-            Route::get('/payroll/periods', [PayrollController::class, 'periods'])->name('payroll.periods')->middleware('permission:payroll.manage');
-            Route::post('/payroll/periods', [PayrollController::class, 'storePeriod'])->name('payroll.periods.store')->middleware('permission:payroll.manage');
-            Route::get('/payroll/components', [PayrollController::class, 'components'])->name('payroll.components')->middleware('permission:payroll.manage');
-            Route::post('/payroll/components', [PayrollController::class, 'storeComponent'])->name('payroll.components.store')->middleware('permission:payroll.manage');
-            Route::get('/payroll/{payroll}/calculations', [PayrollController::class, 'calculations'])->name('payroll.calculations')->middleware('permission:payroll.view');
-            Route::get('/payroll/payslips', [PayrollController::class, 'payslips'])->name('payroll.payslips')->middleware('permission:payroll.view');
-            Route::post('/payroll/payslips/{payslip}/publish', [PayrollController::class, 'publishPayslip'])->name('payroll.payslips.publish')->middleware('permission:payroll.manage');
                 });
 
-    /*
-    |----------------------------------------------------------------------
-    | Employee Panel
-    |----------------------------------------------------------------------
-    */
-    Route::prefix('employee')
-        ->name('employee.')
-        ->middleware('auth')
-        ->group(function () {
-            Route::get('/dashboard', [EmployeeDashboard::class, 'index'])->name('dashboard');
-            Route::get('/punch', [EmployeePunch::class, 'index'])->name('punch');
-            Route::post('/punch', [EmployeePunch::class, 'store'])->name('punch.store');
-        });
+    require __DIR__ . '/workforce.php';
 
     /*
     |----------------------------------------------------------------------

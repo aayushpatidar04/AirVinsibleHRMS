@@ -40,6 +40,7 @@ class RolePermissionSeeder extends Seeder
             'admin',
             'hr_recruiter',
             'interviewer',
+            'team_leader',
             'employee',
         ];
 
@@ -55,6 +56,7 @@ class RolePermissionSeeder extends Seeder
         $this->assignAdminPermissions();
         $this->assignHrPermissions();
         $this->assignInterviewerPermissions();
+        $this->assignTeamLeaderPermissions();
         $this->assignEmployeePermissions();
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -306,6 +308,27 @@ class RolePermissionSeeder extends Seeder
             'attendance.regularize',
             'attendance.approve-regularization',
             'attendance.export',
+            'attendance.view-team',
+            'attendance.import-machine',
+            'attendance.configure',
+
+            'attendance-policies.view',
+            'attendance-policies.create',
+            'attendance-policies.update',
+            'attendance-policies.delete',
+
+            'leave-policies.view',
+            'leave-policies.create',
+            'leave-policies.update',
+            'leave-policies.delete',
+
+            'clients.view',
+            'clients.create',
+            'clients.update',
+            'clients.delete',
+
+            'integrations.view',
+            'integrations.manage',
 
             /*
              |--------------------------------------------------------------------------
@@ -341,6 +364,8 @@ class RolePermissionSeeder extends Seeder
             'leaves.cancel-own',
             'leaves.approve',
             'leaves.reject',
+            'leaves.view-team',
+            'leaves.adjust-balance',
             'leave-types.view',
             'leave-types.create',
             'leave-types.update',
@@ -362,6 +387,8 @@ class RolePermissionSeeder extends Seeder
             'payroll.release',
             'payroll.export',
             'payroll.download-payslip',
+            'payroll.review',
+            'payroll.adjust',
 
             /*
              |--------------------------------------------------------------------------
@@ -511,29 +538,47 @@ class RolePermissionSeeder extends Seeder
             'employee-letters.release',
             'employee-letters.download',
 
+            // HR manages attendance, leave and payroll inputs for their branch. Approving
+            // payroll and publishing payslips stays with administrators.
             'attendance.view-branch',
-            'attendance.record',
             'attendance.mark',
             'attendance.update',
             'attendance.approve-regularization',
+            'attendance.import-machine',
             'attendance.export',
 
             'shifts.view',
             'shifts.assign-employees',
 
             'holidays.view',
+            'holidays.create',
+            'holidays.update',
+            'holidays.delete',
 
             'leaves.view-branch',
             'leaves.approve',
             'leaves.reject',
+            'leaves.adjust-balance',
             'leave-types.view',
 
             'payroll.view-branch',
             'payroll.manage-salary-structure',
             'payroll.generate',
             'payroll.recalculate',
-            'payroll.release',
+            'payroll.review',
+            'payroll.adjust',
             'payroll.export',
+
+            // HR staff are employees too: self-service pages.
+            'dashboard.employee.view',
+            'attendance.record',
+            'attendance.view-own',
+            'attendance.regularize',
+            'leaves.view-own',
+            'leaves.apply',
+            'leaves.update-own',
+            'leaves.cancel-own',
+            'payroll.view-own',
             'payroll.download-payslip',
 
             'increments.view',
@@ -568,6 +613,37 @@ class RolePermissionSeeder extends Seeder
             'interviews.reject-candidate',
             'interviews.recommend-next-round',
             'interviews.discuss-salary',
+        ]);
+    }
+
+    /**
+     * Team leaders see and approve for the people who report to them, on top
+     * of the same self-service access every employee has.
+     */
+    private function assignTeamLeaderPermissions(): void
+    {
+        $leader = Role::findByName('team_leader', $this->guardName);
+
+        $leader->syncPermissions([
+            'dashboard.employee.view',
+
+            'attendance.view-team',
+            'attendance.approve-regularization',
+            'leaves.view-team',
+            'leaves.approve',
+
+            'attendance.view-own',
+            'attendance.record',
+            'attendance.regularize',
+            'holidays.view',
+            'leaves.view-own',
+            'leaves.apply',
+            'leaves.update-own',
+            'leaves.cancel-own',
+            'payroll.view-own',
+            'payroll.download-payslip',
+            'employee-letters.view',
+            'employee-letters.download',
         ]);
     }
 

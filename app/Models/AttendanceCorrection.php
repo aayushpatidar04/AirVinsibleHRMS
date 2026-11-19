@@ -2,83 +2,43 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AttendanceCorrection extends Model
 {
-    use HasFactory, SoftDeletes;
+    public const PENDING = 'pending';
+    public const APPROVED = 'approved';
+    public const REJECTED = 'rejected';
+    public const CANCELLED = 'cancelled';
 
-    protected $fillable = [
-        'user_id',
-        'client_id',
-        'attendance_record_id',
-        'correction_date',
-        'original_punch_in',
-        'original_punch_out',
-        'corrected_punch_in',
-        'corrected_punch_out',
-        'reason',
-        'status',
-        'requested_by',
-        'approved_by',
-        'approved_at',
-        'rejection_reason',
-    ];
+    protected $guarded = ['id'];
 
     protected $casts = [
-        'correction_date' => 'date',
-        'original_punch_in' => 'datetime:H:i',
-        'original_punch_out' => 'datetime:H:i',
-        'corrected_punch_in' => 'datetime:H:i',
-        'corrected_punch_out' => 'datetime:H:i',
-        'status' => 'string',
-        'approved_at' => 'datetime',
+        'attendance_date' => 'date',
+        'requested_in' => 'datetime',
+        'requested_out' => 'datetime',
+        'decided_at' => 'datetime',
+        'original_snapshot' => 'array',
     ];
-
-    public const STATUS_PENDING = 'pending';
-    public const STATUS_APPROVED = 'approved';
-    public const STATUS_REJECTED = 'rejected';
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function client(): BelongsTo
-    {
-        return $this->belongsTo(Client::class);
-    }
-
-    public function attendanceRecord(): BelongsTo
-    {
-        return $this->belongsTo(AttendanceRecord::class);
-    }
-
-    public function requestedBy(): BelongsTo
+    public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by');
     }
 
-    public function approvedBy(): BelongsTo
+    public function decider(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'approved_by');
+        return $this->belongsTo(User::class, 'decided_by');
     }
 
-    public function scopePending($query)
+    public function isPending(): bool
     {
-        return $query->where('status', self::STATUS_PENDING);
-    }
-
-    public function scopeApproved($query)
-    {
-        return $query->where('status', self::STATUS_APPROVED);
-    }
-
-    public function scopeRejected($query)
-    {
-        return $query->where('status', self::STATUS_REJECTED);
+        return $this->status === self::PENDING;
     }
 }

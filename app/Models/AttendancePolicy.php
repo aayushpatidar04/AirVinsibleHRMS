@@ -2,71 +2,35 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AttendancePolicy extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
-    protected $fillable = [
-        'client_id',
-        'name',
-        'description',
-        'shift_start_time',
-        'shift_end_time',
-        'grace_period_start',
-        'grace_period_end',
-        'grace_period_minutes',
-        'max_late_arrivals',
-        'allow_early_departure',
-        'min_required_hours',
-        'min_session_duration_minutes',
-        'mandatory_portal_punch',
-        'mandatory_machine_punch',
-        'break_duration_minutes',
-        'max_break_minutes',
-        'track_idle_time',
-        'overtime_eligible',
-        'overtime_multiplier',
-        'weekly_offs',
-        'public_holidays',
-        'half_day_threshold_hours',
-        'full_day_threshold_hours',
-        'allow_negative_leave_balance',
-        'deduct_late_arrival',
-        'deduct_early_departure',
-        'effective_from',
-        'effective_to',
-        'is_active',
-    ];
+    public const SOURCES = ['portal', 'machine', 'agent'];
+
+    protected $guarded = ['id'];
 
     protected $casts = [
-        'grace_period_minutes' => 'integer',
-        'max_late_arrivals' => 'integer',
-        'allow_early_departure' => 'boolean',
-        'min_required_hours' => 'integer',
-        'min_session_duration_minutes' => 'integer',
-        'mandatory_portal_punch' => 'boolean',
-        'mandatory_machine_punch' => 'boolean',
-        'break_duration_minutes' => 'integer',
-        'max_break_minutes' => 'integer',
-        'track_idle_time' => 'boolean',
-        'overtime_eligible' => 'boolean',
-        'overtime_multiplier' => 'decimal:2',
-        'weekly_offs' => 'array',
-        'public_holidays' => 'array',
-        'half_day_threshold_hours' => 'decimal:2',
-        'full_day_threshold_hours' => 'decimal:2',
-        'allow_negative_leave_balance' => 'boolean',
-        'deduct_late_arrival' => 'boolean',
-        'deduct_early_departure' => 'boolean',
         'effective_from' => 'date',
         'effective_to' => 'date',
         'is_active' => 'boolean',
+        'weekly_offs' => 'array',
+        'source_priority' => 'array',
+        'require_portal_punch' => 'boolean',
+        'require_machine_punch' => 'boolean',
+        'geofence_required' => 'boolean',
+        'deduct_excess_break' => 'boolean',
+        'track_idle_time' => 'boolean',
+        'deduct_late' => 'boolean',
+        'deduct_early' => 'boolean',
+        'overtime_eligible' => 'boolean',
+        'overtime_requires_approval' => 'boolean',
+        'overtime_multiplier' => 'float',
     ];
 
     public function client(): BelongsTo
@@ -74,18 +38,34 @@ class AttendancePolicy extends Model
         return $this->belongsTo(Client::class);
     }
 
-    public function shifts(): HasMany
-    {
-        return $this->hasMany(Shift::class)->whereNull('deleted_at');
-    }
-
-    public function attendanceRecords(): HasMany
-    {
-        return $this->hasMany(AttendanceRecord::class)->whereNull('deleted_at');
-    }
-
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeEffectiveOn($query, CarbonInterface|string $date)
+    {
+        $date = is_string($date) ? $date : $date->toDateString();
+
+        return $query->whereDate('effective_from', '<=', $date)
+            ->where(fn ($q) => $q->whereNull('effective_to')->orWhereDate('effective_to', '>=', $date));
+    }
+
+    public function isWeeklyOff(CarbonInterface $date): bool
+    {
+        return in_array($date->dayOfWeekIso, array_map('intval', $this->weekly_offs ?? []), true);
+    }
+
+    /** Frozen copy stored on attendance records and payroll runs. */
+    public function snapshot(): array
+    {
+        return $this->only([
+            'id', 'name', 'effective_from', 'effective_to', 'weekly_offs', 'full_day_minutes', 'half_day_minutes',
+            'min_session_minutes', 'grace_minutes', 'early_departure_minutes', 'max_late_per_month',
+            'lates_per_half_day', 'deduct_late', 'deduct_early', 'require_portal_punch', 'require_machine_punch',
+            'source_priority', 'source_tolerance_minutes', 'geofence_required', 'paid_break_minutes',
+            'max_break_minutes', 'deduct_excess_break', 'track_idle_time', 'overtime_eligible',
+            'overtime_min_minutes', 'overtime_multiplier', 'overtime_requires_approval', 'missing_punch_treatment',
+        ]);
     }
 }

@@ -4,186 +4,174 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AttendancePolicy;
+use App\Models\AuditLog;
 use App\Models\Client;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class AttendancePolicyController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
-        $query = AttendancePolicy::query()
-            ->with('client');
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-            });
-        }
-
-        if ($request->filled('client_id')) {
-            $query->where('client_id', $request->client_id);
-        }
-
-        if ($request->filled('is_active')) {
-            $query->where('is_active', $request->boolean('is_active'));
-        }
-
-        $policies = $query->orderBy('name')
-            ->paginate(15)
-            ->withQueryString();
-
-        $clients = Client::active()->orderBy('name')->get();
+        $policies = AttendancePolicy::query()
+            ->with('client:id,name')
+            ->when($request->query('client_id'), fn ($q, $c) => $q->where('client_id', $c))
+            ->when($request->filled('is_active'), fn ($q) => $q->where('is_active', $request->boolean('is_active')))
+            ->when($request->query('search'), fn ($q, $s) => $q->where('name', 'like', "%{$s}%"))
+            ->orderBy('client_id')->orderByDesc('effective_from')
+            ->paginate(15)->withQueryString()
+            ->through(fn (AttendancePolicy $p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'client' => $p->client?->name,
+                'effective_from' => $p->effective_from->format('d M Y'),
+                'effective_to' => $p->effective_to?->format('d M Y'),
+                'is_active' => $p->is_active,
+                'current' => $p->is_active && $p->effective_from->lte(today()) && (!$p->effective_to || $p->effective_to->gte(today())),
+                'summary' => sprintf('%dh full day · grace %d min%s', $p->full_day_minutes / 60, $p->grace_minutes, $p->geofence_required ? ' · geofence' : ''),
+            ]);
 
         return Inertia::render('Admin/AttendancePolicies/Index', [
             'policies' => $policies,
-            'clients' => $clients,
+            'clients' => Client::active()->orderBy('name')->get(['id', 'name']),
             'filters' => $request->only(['search', 'client_id', 'is_active']),
         ]);
     }
 
-    public function create()
+    public function create(Request $request): Response
     {
-        $clients = Client::active()->orderBy('name')->get();
-
-        return Inertia::render('Admin/AttendancePolicies/Create', [
-            'clients' => $clients,
+        return Inertia::render('Admin/AttendancePolicies/Form', [
+            'policy' => null,
+            'clients' => Client::active()->orderBy('name')->get(['id', 'name']),
+            'defaults' => ['client_id' => $request->query('client_id'), 'effective_from' => today()->toDateString()],
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'shift_start_time' => 'required|date_format:H:i',
-            'shift_end_time' => 'required|date_format:H:i|after:shift_start_time',
-            'grace_period_start' => 'nullable|date_format:H:i',
-            'grace_period_end' => 'nullable|date_format:H:i',
-            'grace_period_minutes' => 'nullable|integer|min:0',
-            'max_late_arrivals' => 'nullable|integer|min:0',
-            'allow_early_departure' => 'boolean',
-            'min_required_hours' => 'nullable|integer|min:0',
-            'min_session_duration_minutes' => 'nullable|integer|min:0',
-            'mandatory_portal_punch' => 'boolean',
-            'mandatory_machine_punch' => 'boolean',
-            'break_duration_minutes' => 'nullable|integer|min:0',
-            'max_break_minutes' => 'nullable|integer|min:0',
-            'track_idle_time' => 'boolean',
-            'overtime_eligible' => 'boolean',
-            'overtime_multiplier' => 'nullable|numeric|min:0',
-            'weekly_offs' => 'nullable|array',
-            'public_holidays' => 'nullable|array',
-            'half_day_threshold_hours' => 'nullable|numeric|min:0',
-            'full_day_threshold_hours' => 'nullable|numeric|min:0',
-            'allow_negative_leave_balance' => 'boolean',
-            'deduct_late_arrival' => 'boolean',
-            'deduct_early_departure' => 'boolean',
-            'effective_from' => 'required|date',
-            'effective_to' => 'nullable|date|after:effective_from',
-            'is_active' => 'boolean',
-        ]);
+        $data = $this->validated($request);
 
-        $data['weekly_offs'] = $data['weekly_offs'] ?? [];
-        $data['public_holidays'] = $data['public_holidays'] ?? [];
-        $data['allow_early_departure'] = $request->boolean('allow_early_departure');
-        $data['mandatory_portal_punch'] = $request->boolean('mandatory_portal_punch');
-        $data['mandatory_machine_punch'] = $request->boolean('mandatory_machine_punch');
-        $data['track_idle_time'] = $request->boolean('track_idle_time');
-        $data['overtime_eligible'] = $request->boolean('overtime_eligible');
-        $data['allow_negative_leave_balance'] = $request->boolean('allow_negative_leave_balance');
-        $data['deduct_late_arrival'] = $request->boolean('deduct_late_arrival');
-        $data['deduct_early_departure'] = $request->boolean('deduct_early_departure');
-        $data['is_active'] = $request->boolean('is_active');
+        if ($clash = $this->overlap($data)) {
+            return back()->withErrors(['effective_from' => $clash])->withInput();
+        }
 
         $policy = AttendancePolicy::create($data);
+        AuditLog::record('attendance_policy.created', $policy, [], $policy->snapshot(), $request->user()->id);
 
-        return redirect()
-            ->route('admin.attendance-policies.show', $policy)
-            ->with('success', 'Attendance policy created successfully.');
+        return redirect()->route('admin.attendance-policies.index')->with('success', 'Attendance policy created.');
     }
 
-    public function show(AttendancePolicy $policy)
+    public function edit(AttendancePolicy $attendancePolicy): Response
     {
-        $policy->load('client');
-
-        return Inertia::render('Admin/AttendancePolicies/Show', [
-            'policy' => $policy,
+        return Inertia::render('Admin/AttendancePolicies/Form', [
+            'policy' => $attendancePolicy->only([
+                'id', 'client_id', 'name', 'description', 'is_active', 'weekly_offs', 'full_day_minutes', 'half_day_minutes',
+                'min_session_minutes', 'grace_minutes', 'early_departure_minutes', 'max_late_per_month', 'lates_per_half_day',
+                'deduct_late', 'deduct_early', 'require_portal_punch', 'require_machine_punch', 'source_priority',
+                'source_tolerance_minutes', 'geofence_required', 'paid_break_minutes', 'max_break_minutes', 'deduct_excess_break',
+                'track_idle_time', 'overtime_eligible', 'overtime_min_minutes', 'overtime_multiplier', 'overtime_requires_approval',
+                'missing_punch_treatment',
+            ]) + [
+                'effective_from' => $attendancePolicy->effective_from->toDateString(),
+                'effective_to' => $attendancePolicy->effective_to?->toDateString(),
+            ],
+            'clients' => Client::active()->orderBy('name')->get(['id', 'name']),
+            'defaults' => [],
+            'usedDays' => \App\Models\AttendanceRecord::query()->where('policy_id', $attendancePolicy->id)->count(),
         ]);
     }
 
-    public function edit(AttendancePolicy $policy)
+    public function update(Request $request, AttendancePolicy $attendancePolicy): RedirectResponse
     {
-        $clients = Client::active()->orderBy('name')->get();
+        $data = $this->validated($request);
 
-        return Inertia::render('Admin/AttendancePolicies/Edit', [
-            'policy' => $policy,
-            'clients' => $clients,
-        ]);
+        if ($clash = $this->overlap($data, $attendancePolicy->id)) {
+            return back()->withErrors(['effective_from' => $clash])->withInput();
+        }
+
+        $old = $attendancePolicy->snapshot();
+        $attendancePolicy->update($data);
+        AuditLog::record('attendance_policy.updated', $attendancePolicy, $old, $attendancePolicy->fresh()->snapshot(), $request->user()->id);
+
+        return redirect()->route('admin.attendance-policies.index')
+            ->with('success', 'Policy saved. Days already approved in payroll keep the rules they were calculated with.');
     }
 
-    public function update(Request $request, AttendancePolicy $policy)
+    public function destroy(Request $request, AttendancePolicy $attendancePolicy): RedirectResponse
+    {
+        AuditLog::record('attendance_policy.deleted', $attendancePolicy, $attendancePolicy->snapshot(), [], $request->user()->id);
+        $attendancePolicy->delete();
+
+        return back()->with('success', 'Policy removed. Past attendance still shows the rules that were applied.');
+    }
+
+    private function validated(Request $request): array
     {
         $data = $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'shift_start_time' => 'required|date_format:H:i',
-            'shift_end_time' => 'required|date_format:H:i|after:shift_start_time',
-            'grace_period_start' => 'nullable|date_format:H:i',
-            'grace_period_end' => 'nullable|date_format:H:i',
-            'grace_period_minutes' => 'nullable|integer|min:0',
-            'max_late_arrivals' => 'nullable|integer|min:0',
-            'allow_early_departure' => 'boolean',
-            'min_required_hours' => 'nullable|integer|min:0',
-            'min_session_duration_minutes' => 'nullable|integer|min:0',
-            'mandatory_portal_punch' => 'boolean',
-            'mandatory_machine_punch' => 'boolean',
-            'break_duration_minutes' => 'nullable|integer|min:0',
-            'max_break_minutes' => 'nullable|integer|min:0',
-            'track_idle_time' => 'boolean',
-            'overtime_eligible' => 'boolean',
-            'overtime_multiplier' => 'nullable|numeric|min:0',
-            'weekly_offs' => 'nullable|array',
-            'public_holidays' => 'nullable|array',
-            'half_day_threshold_hours' => 'nullable|numeric|min:0',
-            'full_day_threshold_hours' => 'nullable|numeric|min:0',
-            'allow_negative_leave_balance' => 'boolean',
-            'deduct_late_arrival' => 'boolean',
-            'deduct_early_departure' => 'boolean',
-            'effective_from' => 'required|date',
-            'effective_to' => 'nullable|date|after:effective_from',
-            'is_active' => 'boolean',
+            'client_id' => ['required', 'exists:clients,id'],
+            'name' => ['required', 'string', 'max:120'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'effective_from' => ['required', 'date'],
+            'effective_to' => ['nullable', 'date', 'after_or_equal:effective_from'],
+            'is_active' => ['boolean'],
+            'weekly_offs' => ['nullable', 'array'],
+            'weekly_offs.*' => ['integer', 'between:1,7'],
+            'full_day_minutes' => ['required', 'integer', 'between:30,1440'],
+            'half_day_minutes' => ['required', 'integer', 'between:15,1440', 'lte:full_day_minutes'],
+            'min_session_minutes' => ['nullable', 'integer', 'between:0,1440'],
+            'grace_minutes' => ['nullable', 'integer', 'between:0,240'],
+            'early_departure_minutes' => ['nullable', 'integer', 'between:0,240'],
+            'max_late_per_month' => ['nullable', 'integer', 'between:0,31'],
+            'lates_per_half_day' => ['nullable', 'integer', 'between:0,31'],
+            'deduct_late' => ['boolean'],
+            'deduct_early' => ['boolean'],
+            'require_portal_punch' => ['boolean'],
+            'require_machine_punch' => ['boolean'],
+            'source_priority' => ['nullable', 'array'],
+            'source_priority.*' => ['in:' . implode(',', AttendancePolicy::SOURCES)],
+            'source_tolerance_minutes' => ['nullable', 'integer', 'between:0,240'],
+            'geofence_required' => ['boolean'],
+            'paid_break_minutes' => ['nullable', 'integer', 'between:0,480'],
+            'max_break_minutes' => ['nullable', 'integer', 'between:0,480'],
+            'deduct_excess_break' => ['boolean'],
+            'track_idle_time' => ['boolean'],
+            'overtime_eligible' => ['boolean'],
+            'overtime_min_minutes' => ['nullable', 'integer', 'between:0,480'],
+            'overtime_multiplier' => ['nullable', 'numeric', 'between:1,5'],
+            'overtime_requires_approval' => ['boolean'],
+            'missing_punch_treatment' => ['required', 'in:review,half_day,absent'],
         ]);
 
-        $data['weekly_offs'] = $data['weekly_offs'] ?? [];
-        $data['public_holidays'] = $data['public_holidays'] ?? [];
-        $data['allow_early_departure'] = $request->boolean('allow_early_departure');
-        $data['mandatory_portal_punch'] = $request->boolean('mandatory_portal_punch');
-        $data['mandatory_machine_punch'] = $request->boolean('mandatory_machine_punch');
-        $data['track_idle_time'] = $request->boolean('track_idle_time');
-        $data['overtime_eligible'] = $request->boolean('overtime_eligible');
-        $data['allow_negative_leave_balance'] = $request->boolean('allow_negative_leave_balance');
-        $data['deduct_late_arrival'] = $request->boolean('deduct_late_arrival');
-        $data['deduct_early_departure'] = $request->boolean('deduct_early_departure');
-        $data['is_active'] = $request->boolean('is_active');
+        foreach (['min_session_minutes', 'grace_minutes', 'early_departure_minutes', 'max_late_per_month', 'lates_per_half_day', 'source_tolerance_minutes', 'paid_break_minutes', 'max_break_minutes', 'overtime_min_minutes'] as $field) {
+            $data[$field] = $data[$field] ?? 0;
+        }
 
-        $policy->update($data);
+        $data['overtime_multiplier'] = $data['overtime_multiplier'] ?? 1.5;
+        $data['weekly_offs'] = array_values(array_unique($data['weekly_offs'] ?? []));
+        $data['source_priority'] = array_values($data['source_priority'] ?? ['machine', 'portal']);
+        $data['is_active'] = $data['is_active'] ?? true;
 
-        return redirect()
-            ->route('admin.attendance-policies.show', $policy)
-            ->with('success', 'Attendance policy updated successfully.');
+        return $data;
     }
 
-    public function destroy(AttendancePolicy $policy)
+    /** Two active policies for one client must not cover the same day. */
+    private function overlap(array $data, ?int $ignoreId = null): ?string
     {
-        $policy->delete();
+        if (!($data['is_active'] ?? true)) {
+            return null;
+        }
 
-        return redirect()
-            ->route('admin.attendance-policies.index')
-            ->with('success', 'Attendance policy deleted successfully.');
+        $clash = AttendancePolicy::query()
+            ->where('client_id', $data['client_id'])->where('is_active', true)
+            ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->whereDate('effective_from', '<=', $data['effective_to'] ?? '9999-12-31')
+            ->where(fn ($q) => $q->whereNull('effective_to')->orWhereDate('effective_to', '>=', $data['effective_from']))
+            ->first();
+
+        return $clash
+            ? 'This overlaps "' . $clash->name . '" (' . $clash->effective_from->format('d M Y') . ' onwards). End that policy the day before, then try again.'
+            : null;
     }
 }

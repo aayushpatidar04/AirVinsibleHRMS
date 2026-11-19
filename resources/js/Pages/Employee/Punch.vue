@@ -1,139 +1,153 @@
 <script setup>
-import AppLayout from '@/Layouts/AppLayout.vue'
-import { router } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from "vue";
+import { Head, router, usePage } from "@inertiajs/vue3";
+import AppLayout from "@/Layouts/AppLayout.vue";
+import Pill from "@/Components/Workforce/Pill.vue";
+import { formatMinutes, punchLabels } from "@/Utils/workforce";
 
 const props = defineProps({
-    user: Object,
-    todayPunches: Array,
-    currentStatus: String,
-    canPunchIn: Boolean,
-    canPunchOut: Boolean,
-    canBreakStart: Boolean,
-    canBreakEnd: Boolean,
-    flash: Object,
-})
+    serverTime: String,
+    date: String,
+    actions: Array,
+    lastType: String,
+    punches: Array,
+    record: Object,
+    shift: Object,
+    geofenceRequired: Boolean,
+    hasPolicy: Boolean,
+    locations: Array,
+});
 
-const processing = ref(false)
+// A ticking clock based on the server's time, so a wrong device clock cannot mislead.
+const offset = new Date(props.serverTime).getTime() - Date.now();
+const now = ref(new Date(Date.now() + offset));
+let timer;
+onMounted(() => (timer = setInterval(() => (now.value = new Date(Date.now() + offset)), 1000)));
+onUnmounted(() => clearInterval(timer));
 
-const punchTypes = [
-    { value: 'in', label: 'Punch In', disabled: !props.canPunchIn, base: 'bg-green-600 text-white border-green-600' },
-    { value: 'out', label: 'Punch Out', disabled: !props.canPunchOut, base: 'bg-red-600 text-white border-red-600' },
-    { value: 'break_start', label: 'Start Break', disabled: !props.canBreakStart, base: 'bg-yellow-600 text-white border-yellow-600' },
-    { value: 'break_end', label: 'End Break', disabled: !props.canBreakEnd, base: 'bg-indigo-600 text-white border-indigo-600' },
-]
+const clock = computed(() => now.value.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
 
-const recordPunch = (type) => {
-    if (type.disabled || processing.value) return
+const busy = ref(false);
+const message = ref("");
+const page = usePage();
+const serverError = computed(() => page.props.errors?.punch);
 
-    processing.value = true
+const buttons = {
+    in: { label: "Punch in", tone: "bg-emerald-600 hover:bg-emerald-700" },
+    out: { label: "Punch out", tone: "bg-red-600 hover:bg-red-700" },
+    break_start: { label: "Start break", tone: "bg-amber-500 hover:bg-amber-600" },
+    break_end: { label: "End break", tone: "bg-indigo-600 hover:bg-indigo-700" },
+};
 
-    router.post(route('employee.punch.store'), {
-        punch_type: type.value,
-        source: 'portal',
-        notes: null,
-    }, {
+const locate = () =>
+    new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+            (p) => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude, accuracy: p.coords.accuracy }),
+            () => resolve(null),
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+        );
+    });
+
+const punch = async (type) => {
+    if (busy.value) return;
+    busy.value = true;
+    message.value = "";
+
+    let geo = null;
+    if (["in", "out"].includes(type)) {
+        message.value = "Checking your location…";
+        geo = await locate();
+
+        if (!geo && props.geofenceRequired) {
+            message.value = "";
+            busy.value = false;
+            alert("Location permission is required to punch. Please allow location access in your browser and try again.");
+            return;
+        }
+    }
+
+    message.value = "Recording…";
+    router.post(route("employee.punch.store"), { type, ...(geo ?? {}) }, {
         preserveScroll: true,
-        onSuccess: () => {
-            processing.value = false
+        onFinish: () => {
+            busy.value = false;
+            message.value = "";
         },
-        onError: () => {
-            processing.value = false
-        },
-    })
-}
-
-const statusLabel = {
-    'in': 'Checked In',
-    'out': 'Checked Out',
-    'break_start': 'On Break',
-    'break_end': 'Break Ended',
-    null: 'Not Punched In Today',
-}
-
-const statusColor = {
-    'in': 'bg-green-100 text-green-700',
-    'out': 'bg-red-100 text-red-700',
-    'break_start': 'bg-yellow-100 text-yellow-700',
-    'break_end': 'bg-gray-100 text-gray-700',
-    null: 'bg-gray-100 text-gray-500',
-}
+    });
+};
 </script>
 
 <template>
+    <Head title="Punch in / out" />
+
     <AppLayout>
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-bold text-gray-900">Punch In / Out</h1>
-            </div>
+        <div class="mx-auto max-w-3xl space-y-6">
+            <div class="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-gray-100">
+                <p class="text-sm text-gray-500">{{ date }}</p>
+                <p class="mt-1 font-mono text-5xl font-bold tracking-tight text-gray-900">{{ clock }}</p>
+                <p v-if="shift" class="mt-2 text-sm text-gray-500">
+                    Shift: <span class="font-medium text-gray-700">{{ shift.name }}</span> · {{ shift.start }} – {{ shift.end }}
+                </p>
+                <p v-else class="mt-2 text-sm text-amber-600">No shift is assigned to you yet. Ask HR.</p>
 
-            <!-- Flash Message -->
-            <div v-if="props.flash.success" class="bg-green-50 border border-green-200 rounded-lg p-4 text-green-800 text-sm">
-                {{ props.flash.success }}
-            </div>
-
-            <!-- Current Status -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500 uppercase">Your Status Today</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ statusLabel[currentStatus] }}</p>
-                    </div>
-                    <span :class="statusColor[currentStatus]" class="text-xs font-semibold px-3 py-1 rounded-full">
-                        {{ statusLabel[currentStatus] }}
-                    </span>
-                </div>
-
-                <!-- Punch Buttons -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="mt-6 flex flex-wrap justify-center gap-3">
                     <button
-                        v-for="pt in punchTypes"
-                        :key="pt.value"
+                        v-for="a in actions"
+                        :key="a"
                         type="button"
-                        @click="recordPunch(pt)"
-                        :disabled="pt.disabled || processing"
-                        :class="
-                            'w-full py-4 rounded-lg font-medium border-2 transition-all duration-200 flex flex-col items-center justify-center gap-2 ' +
-                            (processing ? 'opacity-60 cursor-not-allowed' : pt.base + ' hover:bg-gray-100 text-gray-600 border-gray-300')
-                        "
+                        :disabled="busy"
+                        :class="['min-w-[10rem] rounded-xl px-6 py-3 text-lg font-semibold text-white shadow-sm disabled:opacity-60', buttons[a].tone]"
+                        @click="punch(a)"
                     >
-                        <span class="text-lg font-bold">{{ pt.label }}</span>
-                        <span v-if="pt.disabled" class="text-xs opacity-50">Not available</span>
+                        {{ buttons[a].label }}
                     </button>
                 </div>
+
+                <p v-if="message" class="mt-4 text-sm text-gray-500">{{ message }}</p>
+                <p v-if="serverError" class="mt-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{{ serverError }}</p>
+
+                <p v-if="geofenceRequired" class="mt-4 text-xs text-gray-400">
+                    You must be at an authorised office to punch in or out
+                    <span v-if="locations?.length">({{ locations.map((l) => `${l.name} · ${l.radius} m`).join(", ") }})</span>.
+                    Allow location access when your browser asks.
+                </p>
+                <p v-if="!hasPolicy" class="mt-3 text-xs text-amber-600">No attendance policy applies to you yet, so attendance cannot be judged. Ask HR.</p>
             </div>
 
-            <!-- Today's Punch History -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-base font-semibold text-gray-800 mb-4">Today's Punches</h2>
+            <div v-if="record" class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
+                    <p class="text-xs text-gray-500">Status</p>
+                    <div class="mt-1"><Pill :status="record.status" /></div>
+                </div>
+                <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
+                    <p class="text-xs text-gray-500">First in</p>
+                    <p class="mt-1 font-semibold text-gray-900">{{ record.first_in ?? "—" }}</p>
+                    <p v-if="record.is_late" class="text-xs text-red-600">{{ record.late_minutes }} min late</p>
+                </div>
+                <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
+                    <p class="text-xs text-gray-500">Worked so far</p>
+                    <p class="mt-1 font-semibold text-gray-900">{{ formatMinutes(record.worked_minutes) }}</p>
+                </div>
+                <div class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
+                    <p class="text-xs text-gray-500">Breaks</p>
+                    <p class="mt-1 font-semibold text-gray-900">{{ formatMinutes(record.break_minutes) }}</p>
+                </div>
+            </div>
 
-                <div v-if="todayPunches.length" class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="bg-gray-50 border-b border-gray-100">
-                            <tr>
-                                <th class="px-5 py-3 text-left font-medium text-gray-500">Time</th>
-                                <th class="px-5 py-3 text-left font-medium text-gray-500">Type</th>
-                                <th class="px-5 py-3 text-left font-medium text-gray-500">Source</th>
-                                <th class="px-5 py-3 text-right font-medium text-gray-500">Device</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            <tr v-for="p in todayPunches" :key="p.id" class="hover:bg-gray-50 transition">
-                                <td class="px-5 py-4 text-gray-900">{{ p.punch_time }}</td>
-                                <td class="px-5 py-4">
-                                    <span :class="p.punch_type === 'in' ? 'text-green-600' : p.punch_type === 'out' ? 'text-red-600' : 'text-yellow-600'" class="font-medium text-sm uppercase">
-                                        {{ p.punch_type }}
-                                    </span>
-                                </td>
-                                <td class="px-5 py-4 text-gray-600">{{ p.source }}</td>
-                                <td class="px-5 py-4 text-right text-gray-600">{{ p.device_id || '—' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div v-else class="text-center py-10 text-gray-400">
-                    No punches recorded today.
-                </div>
+            <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+                <h2 class="mb-3 text-sm font-semibold text-gray-800">Today's punches</h2>
+                <ul v-if="punches?.length" class="divide-y divide-gray-100">
+                    <li v-for="p in punches" :key="p.id" class="flex items-center justify-between py-2 text-sm">
+                        <span class="font-medium text-gray-800">{{ punchLabels[p.type] }}</span>
+                        <span class="text-gray-500">
+                            {{ p.time }}
+                            <span class="ml-2 text-xs uppercase text-gray-400">{{ p.source }}</span>
+                            <span v-if="p.geo_status === 'inside'" class="ml-2 text-xs text-emerald-600">✓ location</span>
+                        </span>
+                    </li>
+                </ul>
+                <p v-else class="text-sm text-gray-500">No punches yet today.</p>
             </div>
         </div>
     </AppLayout>

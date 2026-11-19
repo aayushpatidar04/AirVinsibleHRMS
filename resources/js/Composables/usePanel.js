@@ -31,8 +31,12 @@ export function usePanel() {
      */
     const navigation = computed(() => {
         const permissions = page.props.auth?.permissions ?? [];
+        // A nav item can need one permission, or any one of several (array).
         const hasPermission = (permission) =>
-            !permission || permissions.includes(permission);
+            !permission ||
+            (Array.isArray(permission)
+                ? permission.some((p) => permissions.includes(p))
+                : permissions.includes(permission));
         const routeExists = (name) =>
             typeof route === "function" && route().has(name);
 

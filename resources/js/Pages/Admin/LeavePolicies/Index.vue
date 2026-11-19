@@ -1,92 +1,47 @@
 <script setup>
-import AppLayout from '@/Layouts/AppLayout.vue'
-import Pagination from '@/Components/Common/Pagination.vue'
-import { Link, router } from '@inertiajs/vue3'
-import { ref, watch } from 'vue'
+import { reactive } from "vue";
+import { Head, Link, router } from "@inertiajs/vue3";
+import AppLayout from "@/Layouts/AppLayout.vue";
+import Pagination from "@/Components/Common/Pagination.vue";
+import PageHeader from "@/Components/Workforce/PageHeader.vue";
 
-const props = defineProps({ policies: Object, clients: Array, leaveTypes: Array, filters: Object })
+const props = defineProps({ policies: Object, clients: Array, leaveTypes: Array, filters: Object });
 
-const search = ref(props.filters?.search ?? '')
-const clientId = ref(props.filters?.client_id ?? '')
-const isActive = ref(props.filters?.is_active ?? '')
-
-watch([search, clientId, isActive], () => {
-    router.get(route('admin.leave-policies.index'), {
-        search: search.value,
-        client_id: clientId.value,
-        is_active: isActive.value,
-    }, { preserveState: true, replace: true })
-})
+const f = reactive({ client_id: props.filters.client_id ?? "", leave_type_id: props.filters.leave_type_id ?? "" });
+const apply = () => router.get(route("admin.leave-policies.index"), Object.fromEntries(Object.entries(f).filter(([, v]) => v !== "")), { preserveState: true, replace: true });
+const remove = (p) => confirm("Remove this leave policy? Employees covered by it lose access to this leave type.") && router.delete(route("admin.leave-policies.destroy", p.id), { preserveScroll: true });
 </script>
 
 <template>
+    <Head title="Leave policies" />
+
     <AppLayout>
-        <div class="space-y-5">
-            <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-bold text-gray-900">Leave Policies</h1>
-                <Link :href="route('admin.leave-policies.create')" class="btn-primary">+ New Policy</Link>
-            </div>
+        <PageHeader title="Leave policies" subtitle="Entitlement, accrual, carry-forward and approval rules per leave type. A type with no policy is not offered to employees.">
+            <Link :href="route('admin.leave-types.index')" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Leave types</Link>
+            <Link :href="route('admin.leave-policies.create')" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">New policy</Link>
+        </PageHeader>
 
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-wrap gap-3">
-                <input v-model="search" type="text" placeholder="Search policy..." class="input-field w-64" />
-                <select v-model="clientId" class="input-field w-48">
-                    <option value="">All Clients</option>
-                    <option v-for="c in props.clients" :key="c.id" :value="c.id">{{ c.name }}</option>
-                </select>
-                <select v-model="isActive" class="input-field w-32">
-                    <option value="">All Status</option>
-                    <option value="true">Active</option>
-                    <option value="false">Inactive</option>
-                </select>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            <th class="px-5 py-3 text-left font-medium text-gray-500">Leave Type</th>
-                            <th class="px-5 py-3 text-left font-medium text-gray-500">Client</th>
-                            <th class="px-5 py-3 text-left font-medium text-gray-500">Employee Category</th>
-                            <th class="px-5 py-3 text-center font-medium text-gray-500">Annual Entitlement</th>
-                            <th class="px-5 py-3 text-center font-medium text-gray-500">Carry Forward</th>
-                            <th class="px-5 py-3 text-center font-medium text-gray-500">Encashment</th>
-                            <th class="px-5 py-3 text-center font-medium text-gray-500">Status</th>
-                            <th class="px-5 py-3 text-right font-medium text-gray-500">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-50">
-                        <tr v-for="p in policies.data" :key="p.id" class="hover:bg-gray-50 transition">
-                            <td class="px-5 py-4 font-medium text-gray-900">{{ p.leaveType?.name }}</td>
-                            <td class="px-5 py-4 text-gray-600">{{ p.client?.name }}</td>
-                            <td class="px-5 py-4 text-gray-600">{{ p.employee_category }}</td>
-                            <td class="px-5 py-4 text-center text-gray-600">{{ p.annual_entitlement }}</td>
-                            <td class="px-5 py-4 text-center">
-                                <span :class="p.allow_carry_forward ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'" class="text-xs font-medium px-2 py-0.5 rounded-full">
-                                    {{ p.allow_carry_forward ? 'Yes' : 'No' }}
-                                </span>
-                            </td>
-                            <td class="px-5 py-4 text-center">
-                                <span :class="p.allow_encashment ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'" class="text-xs font-medium px-2 py-0.5 rounded-full">
-                                    {{ p.allow_encashment ? 'Yes' : 'No' }}
-                                </span>
-                            </td>
-                            <td class="px-5 py-4 text-center">
-                                <span :class="p.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'" class="text-xs font-medium px-2 py-0.5 rounded-full">
-                                    {{ p.is_active ? 'Active' : 'Inactive' }}
-                                </span>
-                            </td>
-                            <td class="px-5 py-4 text-right space-x-3">
-                                <Link :href="route('admin.leave-policies.show', p.id)" class="text-indigo-600 hover:underline text-xs">View</Link>
-                                <Link :href="route('admin.leave-policies.edit', p.id)" class="text-gray-600 hover:underline text-xs">Edit</Link>
-                            </td>
-                        </tr>
-                        <tr v-if="!policies.data?.length">
-                            <td colspan="8" class="px-5 py-10 text-center text-gray-400">No leave policies found.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <Pagination :links="policies.links" />
+        <div class="mb-4 flex flex-wrap gap-3">
+            <select v-model="f.client_id" class="rounded-lg border-gray-300 text-sm" @change="apply"><option value="">All clients</option><option v-for="c in clients" :key="c.id" :value="c.id">{{ c.name }}</option></select>
+            <select v-model="f.leave_type_id" class="rounded-lg border-gray-300 text-sm" @change="apply"><option value="">All leave types</option><option v-for="t in leaveTypes" :key="t.id" :value="t.id">{{ t.name }}</option></select>
         </div>
+
+        <div class="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-gray-100">
+            <table class="min-w-full divide-y divide-gray-100 text-sm">
+                <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500"><tr><th class="px-4 py-3">Leave type</th><th class="px-4 py-3">Applies to</th><th class="px-4 py-3">Effective</th><th class="px-4 py-3">Accrual</th><th class="px-4 py-3">Approval</th><th class="px-4 py-3" /></tr></thead>
+                <tbody class="divide-y divide-gray-50">
+                    <tr v-for="p in policies.data" :key="p.id">
+                        <td class="px-4 py-2.5 font-medium text-gray-800">{{ p.leave_type }}<span :class="['ml-2 rounded px-1.5 text-xs', p.is_paid ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500']">{{ p.is_paid ? "paid" : "unpaid" }}</span><span v-if="!p.is_active" class="ml-2 text-xs text-gray-400">inactive</span></td>
+                        <td class="px-4 py-2.5 text-gray-600">{{ p.client }}<p class="text-xs capitalize text-gray-400">{{ p.employment_type }}</p></td>
+                        <td class="px-4 py-2.5 text-gray-600">{{ p.effective_from }} → {{ p.effective_to ?? "open" }}</td>
+                        <td class="px-4 py-2.5 text-gray-600">{{ p.accrual }}</td>
+                        <td class="px-4 py-2.5 text-xs capitalize text-gray-500">{{ p.levels }}</td>
+                        <td class="px-4 py-2.5 text-right text-xs"><Link :href="route('admin.leave-policies.edit', p.id)" class="mr-3 font-medium text-indigo-600 hover:underline">Edit</Link><button class="font-medium text-red-600 hover:underline" @click="remove(p)">Remove</button></td>
+                    </tr>
+                    <tr v-if="!policies.data.length"><td colspan="6" class="px-4 py-10 text-center text-gray-500">No leave policies yet.</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <Pagination :links="policies.links" />
     </AppLayout>
 </template>

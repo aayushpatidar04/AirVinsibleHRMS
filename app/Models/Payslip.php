@@ -2,66 +2,53 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Payslip extends Model
 {
-    use HasFactory, SoftDeletes;
-
-    protected $fillable = [
-        'payroll_calculation_id',
-        'user_id',
-        'client_id',
-        'payslip_number',
-        'period_start',
-        'period_end',
-        'payment_date',
-        'gross_earnings',
-        'total_deductions',
-        'net_pay',
-        'earning_breakdown',
-        'deduction_breakdown',
-        'pdf_path',
-        'is_published',
-        'published_at',
-        'published_by',
-    ];
+    protected $guarded = ['id'];
 
     protected $casts = [
+        'snapshot' => 'array',
         'period_start' => 'date',
         'period_end' => 'date',
-        'payment_date' => 'date',
-        'gross_earnings' => 'decimal:2',
-        'total_deductions' => 'decimal:2',
-        'net_pay' => 'decimal:2',
-        'earning_breakdown' => 'array',
-        'deduction_breakdown' => 'array',
-        'pdf_path' => 'string',
-        'is_published' => 'boolean',
+        'generated_at' => 'datetime',
         'published_at' => 'datetime',
+        'voided_at' => 'datetime',
+        'gross_earnings' => 'float',
+        'total_deductions' => 'float',
+        'net_pay' => 'float',
     ];
-
-    public function payrollCalculation(): BelongsTo
-    {
-        return $this->belongsTo(PayrollCalculation::class);
-    }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function client(): BelongsTo
+    public function run(): BelongsTo
     {
-        return $this->belongsTo(Client::class);
+        return $this->belongsTo(PayrollRun::class, 'payroll_run_id');
     }
 
-    public function publishedBy(): BelongsTo
+    public function publisher(): BelongsTo
     {
         return $this->belongsTo(User::class, 'published_by');
+    }
+
+    public function item(): BelongsTo
+    {
+        return $this->belongsTo(PayrollRunItem::class, 'payroll_run_item_id');
+    }
+
+    /** Employees may only ever see published, non-voided payslips. */
+    public function scopeVisibleToEmployee($query)
+    {
+        return $query->whereNotNull('published_at')->whereNull('voided_at');
+    }
+
+    public function isPublished(): bool
+    {
+        return $this->published_at !== null && $this->voided_at === null;
     }
 }

@@ -1,114 +1,105 @@
 <script setup>
-import AppLayout from '@/Layouts/AppLayout.vue'
-import { Link } from '@inertiajs/vue3'
+import { Head, Link } from "@inertiajs/vue3";
+import AppLayout from "@/Layouts/AppLayout.vue";
+import Pill from "@/Components/Workforce/Pill.vue";
+import { formatMinutes, formatMoney } from "@/Utils/workforce";
 
-const props = defineProps({ user: Object, todayPunches: Array, recentPunches: Array, currentStatus: String })
+defineProps({
+    punchState: String,
+    today: Object,
+    month: Object,
+    balances: Array,
+    pending: Object,
+    latestPayslip: Object,
+    team: Object,
+    hasClient: Boolean,
+});
 
-const statusLabel = {
-    'in': 'Checked In',
-    'out': 'Checked Out',
-    'break_start': 'On Break',
-    'break_end': 'Break Ended',
-    null: 'Not Punched In Today',
-}
-
-const statusColor = {
-    'in': 'bg-green-100 text-green-700',
-    'out': 'bg-red-100 text-red-700',
-    'break_start': 'bg-yellow-100 text-yellow-700',
-    'break_end': 'bg-gray-100 text-gray-700',
-    null: 'bg-gray-100 text-gray-500',
-}
+const stateText = (s) => ({ in: "You are punched in", break_start: "You are on a break", break_end: "You are punched in", out: "You have punched out" }[s] ?? "You have not punched in yet");
 </script>
 
 <template>
+    <Head title="My dashboard" />
+
     <AppLayout>
         <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-bold text-gray-900">Employee Dashboard</h1>
-                <Link :href="route('employee.punch')" class="btn-primary">Punch In/Out</Link>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h1 class="text-2xl font-bold text-gray-900">My dashboard</h1>
+                <Link :href="route('employee.punch')" class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
+                    Punch in / out
+                </Link>
             </div>
 
-            <!-- Current Status -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500 uppercase">Current Status</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ statusLabel[currentStatus] }}</p>
+            <p v-if="!hasClient" class="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                You are not assigned to a client yet, so attendance and payroll rules cannot be applied. Please ask HR to complete your profile.
+            </p>
+
+            <div class="grid gap-4 lg:grid-cols-3">
+                <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Today</p>
+                    <p class="mt-2 text-lg font-semibold text-gray-900">{{ stateText(punchState) }}</p>
+                    <div v-if="today" class="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                        <Pill :status="today.status" />
+                        <span v-if="today.first_in">In {{ today.first_in }}</span>
+                        <span v-if="today.is_late" class="text-red-600">· late</span>
+                        <span>· {{ formatMinutes(today.worked_minutes) }} worked</span>
                     </div>
-                    <span :class="statusColor[currentStatus]" class="text-xs font-semibold px-3 py-1 rounded-full">
-                        {{ statusLabel[currentStatus] }}
-                    </span>
+                </div>
+
+                <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 lg:col-span-2">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ month.label }}</p>
+                    <div class="mt-3 grid grid-cols-3 gap-4 sm:grid-cols-6">
+                        <div><p class="text-2xl font-bold text-emerald-600">{{ month.present }}</p><p class="text-xs text-gray-500">Present</p></div>
+                        <div><p class="text-2xl font-bold text-red-600">{{ month.absent }}</p><p class="text-xs text-gray-500">Absent</p></div>
+                        <div><p class="text-2xl font-bold text-sky-600">{{ month.leave }}</p><p class="text-xs text-gray-500">Leave</p></div>
+                        <div><p class="text-2xl font-bold text-amber-600">{{ month.late }}</p><p class="text-xs text-gray-500">Late</p></div>
+                        <div><p class="text-2xl font-bold text-orange-600">{{ month.exceptions }}</p><p class="text-xs text-gray-500">To fix</p></div>
+                        <div><p class="text-2xl font-bold text-gray-800">{{ formatMinutes(month.worked_minutes) }}</p><p class="text-xs text-gray-500">Worked</p></div>
+                    </div>
+                    <Link :href="route('employee.attendance')" class="mt-4 inline-block text-sm font-medium text-indigo-600 hover:underline">View my attendance →</Link>
                 </div>
             </div>
 
-            <!-- Today's Punches -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-base font-semibold text-gray-800">Today's Punches</h2>
+            <div class="grid gap-4 lg:grid-cols-3">
+                <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 lg:col-span-2">
+                    <div class="flex items-center justify-between">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Leave balance</p>
+                        <Link :href="route('employee.leave')" class="text-sm font-medium text-indigo-600 hover:underline">Apply for leave →</Link>
+                    </div>
+                    <div v-if="balances.length" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <div v-for="b in balances" :key="b.leave_type_id" class="rounded-xl bg-gray-50 p-3">
+                            <p class="text-xs text-gray-500">{{ b.name }}</p>
+                            <p class="mt-1 text-xl font-bold text-gray-900">{{ b.is_paid ? b.available : "—" }}</p>
+                            <p v-if="b.pending" class="text-xs text-amber-600">{{ b.pending }} pending</p>
+                        </div>
+                    </div>
+                    <p v-else class="mt-3 text-sm text-gray-500">No leave policy applies to you yet.</p>
                 </div>
 
-                <div v-if="todayPunches.length" class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="bg-gray-50 border-b border-gray-100">
-                            <tr>
-                                <th class="px-5 py-3 text-left font-medium text-gray-500">Time</th>
-                                <th class="px-5 py-3 text-left font-medium text-gray-500">Type</th>
-                                <th class="px-5 py-3 text-left font-medium text-gray-500">Source</th>
-                                <th class="px-5 py-3 text-right font-medium text-gray-500">Device</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            <tr v-for="p in todayPunches" :key="p.id" class="hover:bg-gray-50 transition">
-                                <td class="px-5 py-4 text-gray-900">{{ p.punch_time }}</td>
-                                <td class="px-5 py-4">
-                                    <span :class="p.punch_type === 'in' ? 'text-green-600' : p.punch_type === 'out' ? 'text-red-600' : 'text-yellow-600'" class="font-medium text-sm uppercase">
-                                        {{ p.punch_type }}
-                                    </span>
-                                </td>
-                                <td class="px-5 py-4 text-gray-600">{{ p.source }}</td>
-                                <td class="px-5 py-4 text-right text-gray-600">{{ p.device_id || '—' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div v-else class="text-center py-10 text-gray-400">
-                    No punches recorded today.
+                <div class="space-y-4">
+                    <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Latest payslip</p>
+                        <template v-if="latestPayslip">
+                            <p class="mt-2 text-sm text-gray-600">{{ latestPayslip.period }}</p>
+                            <p class="text-xl font-bold text-gray-900">₹ {{ formatMoney(latestPayslip.net) }}</p>
+                            <Link :href="route('employee.payslips')" class="mt-2 inline-block text-sm font-medium text-indigo-600 hover:underline">View payslips →</Link>
+                        </template>
+                        <p v-else class="mt-2 text-sm text-gray-500">Published payslips will appear here.</p>
+                    </div>
+                    <div v-if="pending.leave || pending.corrections" class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100 text-sm text-gray-600">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Waiting for approval</p>
+                        <p v-if="pending.leave" class="mt-2">{{ pending.leave }} leave request(s)</p>
+                        <p v-if="pending.corrections">{{ pending.corrections }} attendance correction(s)</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Recent Punches -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-base font-semibold text-gray-800">Recent Activity</h2>
-                </div>
-
-                <div v-if="recentPunches.length" class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="bg-gray-50 border-b border-gray-100">
-                            <tr>
-                                <th class="px-5 py-3 text-left font-medium text-gray-500">Date</th>
-                                <th class="px-5 py-3 text-left font-medium text-gray-500">Type</th>
-                                <th class="px-5 py-3 text-left font-medium text-gray-500">Source</th>
-                                <th class="px-5 py-3 text-right font-medium text-gray-500"></th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            <tr v-for="p in recentPunches" :key="p.id" class="hover:bg-gray-50 transition">
-                                <td class="px-5 py-4 text-gray-900">{{ p.punch_time }}</td>
-                                <td class="px-5 py-4">
-                                    <span :class="p.punch_type === 'in' ? 'text-green-600' : p.punch_type === 'out' ? 'text-red-600' : 'text-yellow-600'" class="font-medium text-sm uppercase">
-                                        {{ p.punch_type }}
-                                    </span>
-                                </td>
-                                <td class="px-5 py-4 text-gray-600">{{ p.source }}</td>
-                                <td class="px-5 py-4 text-right text-gray-400 text-xs">{{ p.device_id || '—' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div v-else class="text-center py-10 text-gray-400">
-                    No recent activity.
+            <div v-if="team" class="rounded-2xl bg-indigo-50 p-5 ring-1 ring-indigo-100">
+                <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">My team ({{ team.size }})</p>
+                <div class="mt-2 flex flex-wrap gap-6 text-sm text-indigo-900">
+                    <Link :href="route('workforce.leave.index')" class="hover:underline"><b>{{ team.pending_leave }}</b> leave request(s) to approve</Link>
+                    <Link :href="route('workforce.attendance.corrections')" class="hover:underline"><b>{{ team.pending_corrections }}</b> correction(s) to approve</Link>
+                    <Link :href="route('workforce.attendance.index')" class="hover:underline">Team attendance →</Link>
                 </div>
             </div>
         </div>
